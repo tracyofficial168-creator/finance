@@ -1,0 +1,2438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="theme-color" content="#ffffff">
+<title>💳 Finance Manager v2.2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;500;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#fff;-webkit-font-smoothing:antialiased}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useMemo } = React;
+const loadData = (key, fb) => { try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : fb; } catch { return fb; } };
+const saveData = (key, data) => { try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) { console.error("Save:",e); } };
+const N = {
+  en: { food:"Food", transport:"Transport", rent:"Housing", shopping:"Shopping", health:"Health", entertainment:"Entertainment",
+    education:"Education", bills:"Bills", family_exp:"Family Expenses", insurance:"Insurance", lending:"Lending", loans:"Loans", charity:"Charity",
+    personal:"Personal", other_exp:"Other", salary:"Salary", freelance:"Freelance", investment_income:"Investment",
+    loan_repay:"Loan Repayment", gift:"Gift", other_inc:"Other",
+    crypto:"Crypto", stock:"Stocks", gold:"Gold", savings:"Savings Deposit", other_inv:"Other",
+    me:"Personal", family:"Family", cash:"Cash", bank:"Bank", cryptoW:"Crypto Wallet" },
+  vi: { food:"Ăn uống", transport:"Di chuyển", rent:"Nhà cửa", shopping:"Mua sắm", health:"Sức khỏe", entertainment:"Giải trí",
+    education:"Học tập", bills:"Hóa đơn", family_exp:"Chi phí gia đình", insurance:"Bảo hiểm", lending:"Cho vay", loans:"Khoản vay", charity:"Từ thiện",
+    personal:"Cá nhân", other_exp:"Khác", salary:"Lương", freelance:"Freelance", investment_income:"Đầu tư",
+    loan_repay:"Thu nợ cho vay", gift:"Quà tặng", other_inc:"Khác",
+    crypto:"Crypto", stock:"Cổ phiếu", gold:"Vàng", savings:"Tiết kiệm", other_inv:"Khác",
+    me:"Bản thân", family:"Gia đình", cash:"Tiền mặt", bank:"Ngân hàng", cryptoW:"Ví crypto" },
+};
+const T = {
+  en: {
+    overview:"Overview", transactions:"Transactions", budget:"Forecast", insurance:"Insurance", savings:"Savings", invest:"Invest",
+    income:"Income", expense:"Expense", balance:"Monthly Balance", all:"All",
+    demoData:"Demo Data", usingDemo:"Using sample data", clearDemo:"Clear demo", tryDemo:"Try demo data?", loadDemo:"Load demo",
+    refreshRates:"Refresh rates", loading:"Loading data & rates...",
+    monthlyAssess:"Monthly Assessment", incExp6:"Income/Expense 6 Months", expByCat:"Expense by Category", expByPerson:"Expense by Person",
+    wallets:"Wallets", noBalance:"No balance", inDebt:"In debt: negative balance", recentTx:"Recent Transactions", noTx:"No transactions", tapToAdd:"Tap + to add",
+    investment:"Investment", insSection:"Insurance", nextPayment:"Next Payment", totalYear:"Total/Year", nextDue:"Next due:",
+    savingsRate:"Savings rate", excellent:"excellent!", acceptable:"acceptable.", reducExp:"consider reducing expenses.",
+    spendExceed:"Spending exceeds income by", overspending:"overspending!", spendInc:"Spending increased", spendDec:"Spending decreased",
+    vsLast:"vs last month", spendSimilar:"Spending similar to last month.", overBudget:"over budget by", used:"used", ofBudget:"of budget.",
+    topSpend:"Top spending:", familyAccounts:"Family accounts for", ofSpending:"of spending",
+    addExpense:"Expense", addIncome:"Income",
+    monthlyForecast:"Monthly Forecast", estIncome:"Estimated Income", fixedCosts:"Fixed Costs", discBudget:"Discretionary Budget",
+    actualVsForecast:"Actual vs Forecast", available:"Available", allocated:"Allocated", unallocated:"Unallocated",
+    inclIns:"(incl. insurance", perMo:"/mo)", noIncomeItems:"No income items", noFixedCosts:"No fixed costs", noDiscBudget:"No discretionary budgets set",
+    availToAlloc:"Available to allocate:", insAuto:"Insurance (auto)", insAutoSub:"Monthly average from Insurance tab",
+    plan:"Plan:", actual:"Actual:", addItem:"+ Add",
+    addInsPolicy:"+ Add Insurance Policy", noInsurance:"No insurance policies", provider:"Provider", policyName:"Policy Name",
+    insuredPerson:"Insured Person", payFreq:"Payment Frequency", quarterly:"Quarterly", semiAnnual:"Semi-annual",
+    premQuarter:"Premium / quarter", premHalf:"Premium / half-year", startDate:"Start Date", nextDueDate:"Next Due Date",
+    duration:"Duration (years)", saveIns:"Save Insurance", started:"Started:", durationLabel:"Duration:", years:"years",
+    overdue:"Overdue", daysLeft:"days left", perQuarter:"/quarter", perHalf:"/half-year",
+    saved:"Saved", target:"Target", complete:"complete", savingsRec:"Savings Recommendation",
+    avgMonInc:"Avg Monthly Income", avgMonExp:"Avg Monthly Expense", recMonth:"Recommended/month (20% of income)",
+    practSug:"Practical suggestion (50% surplus)", emergFund:"Emergency fund needed (6 months exp.)",
+    needMonth:"Needed/month for goals", rule502030:"50/30/20 Rule", needs50:"Needs (50%)", wants30:"Wants (30%)", savings20:"Savings (20%)",
+    noSavGoals:"No savings goals", addSavGoal:"+ Add Savings Goal", goalName:"Goal Name", targetAmt:"Target Amount",
+    amtSaved:"Amount Saved", deadline:"Deadline", saveGoal:"Save Goal", deposit:"+ Deposit", depositBtn:"Deposit",
+    remaining:"Remaining", need:"Need", done:"Done",
+    reduceBefore:"Average income does not cover expenses. Reduce spending before saving.",
+    valueVND:"Value (VND)", pnl:"P&L", addInvest:"+ Add Investment", noInvest:"No investments", type:"Type", name:"Name",
+    quantity:"Quantity", buyPrice:"Buy Price", currentPrice:"Current Price", saveInvest:"Save Investment",
+    currency:"Currency", wallet:"Wallet", paidFor:"Paid for", category:"Category", note:"Note", date:"Date",
+    saveTx:"Save Transaction", addBudgetTitle:"Add Budget", budgetLimit:"Budget Limit", saveBudget:"Save Budget",
+    amount:"Amount", amountMonth:"Amount / month", addIncomeItem:"Add Income", addFixedCost:"Add Fixed Cost",
+    addExpIncome:"Add Expected Income", addFixedCostTitle:"Add Fixed Cost",
+    initBalance:"Initial Balance", curInitBal:"Current Initial Balances", addUpdateBal:"Add / Update Balance",
+    del:"Delete", total:"Total", actualLabel:"Actual", budgetLabel:"Budget",
+    appTitle:"💳 Finance", feeYear:"Fee/year",
+    pMonth:"Month", pQuarter:"Quarter", pHalf:"6 Months", pYear:"Year", forecast:"Forecast",
+    recurring:"Monthly (recurring)", oneTime:"One-time",
+    lending:"Lending", loans:"Loans", lentTotal:"Total Lent", repaidTotal:"Repaid", outstanding:"Outstanding", interestRate:"Interest %/year", noLoans:"No loans", loanAsset:"Loan Assets",
+    phLunch:"e.g. Lunch", phBitcoin:"Bitcoin, VN30...", phAIA:"e.g. AIA Platinum", phInsNote:"e.g. Life + health insurance",
+    phSavGoal:"e.g. Emergency fund, Travel...", phSavNote:"e.g. 6 months living expenses",
+    phIncItem:"e.g. Salary, Freelance...", phFixItem:"e.g. Rent, Bills, Tuition...",
+  },
+  vi: {
+    overview:"Tổng quan", transactions:"Giao dịch", budget:"Dự toán", insurance:"Bảo hiểm", savings:"Tiết kiệm", invest:"Đầu tư",
+    income:"Thu nhập", expense:"Chi tiêu", balance:"Số dư tháng", all:"Tất cả",
+    demoData:"Dữ liệu Demo", usingDemo:"Đang dùng dữ liệu mẫu", clearDemo:"Xóa demo", tryDemo:"Xem thử demo?", loadDemo:"Tải demo",
+    refreshRates:"Cập nhật tỷ giá", loading:"Đang tải dữ liệu & tỷ giá...",
+    monthlyAssess:"Đánh giá tháng này", incExp6:"Thu/Chi 6 tháng", expByCat:"Chi tiêu theo danh mục", expByPerson:"Chi theo người",
+    wallets:"Nguồn tiền", noBalance:"Chưa có số dư", inDebt:"Đang nợ: có khoản tiền âm", recentTx:"Giao dịch gần đây", noTx:"Chưa có giao dịch", tapToAdd:"Bấm + để thêm",
+    investment:"Đầu tư", insSection:"Bảo hiểm", nextPayment:"Kỳ đóng tiếp", totalYear:"Tổng/năm", nextDue:"Kỳ đóng tiếp:",
+    savingsRate:"Tỷ lệ tiết kiệm", excellent:"rất tốt!", acceptable:"ổn.", reducExp:"nên giảm chi.",
+    spendExceed:"Chi vượt thu", overspending:"đang bội chi!", spendInc:"Chi tiêu tăng", spendDec:"Chi tiêu giảm",
+    vsLast:"so với tháng trước", spendSimilar:"Chi tiêu tương đương tháng trước.", overBudget:"vượt ngân sách", used:"đã dùng", ofBudget:"ngân sách.",
+    topSpend:"Chi nhiều nhất:", familyAccounts:"Gia đình chiếm", ofSpending:"chi tiêu",
+    addExpense:"Chi tiêu", addIncome:"Thu nhập",
+    monthlyForecast:"Dự toán tháng", estIncome:"Thu nhập dự kiến", fixedCosts:"Chi phí cố định", discBudget:"Chi tiêu linh hoạt",
+    actualVsForecast:"Thực tế vs Dự toán", available:"Còn lại", allocated:"Đã phân bổ", unallocated:"Chưa phân bổ",
+    inclIns:"(gồm BH", perMo:"/tháng)", noIncomeItems:"Chưa có nguồn thu", noFixedCosts:"Chưa có chi phí cố định", noDiscBudget:"Chưa phân bổ chi tiêu",
+    availToAlloc:"Có thể phân bổ:", insAuto:"Bảo hiểm (tự động)", insAutoSub:"Trung bình tháng từ tab Bảo hiểm",
+    plan:"Kế hoạch:", actual:"Thực tế:", addItem:"+ Thêm",
+    addInsPolicy:"+ Thêm hợp đồng BH", noInsurance:"Chưa có hợp đồng BH", provider:"Nhà bảo hiểm", policyName:"Tên hợp đồng",
+    insuredPerson:"Người được BH", payFreq:"Kỳ đóng", quarterly:"Hàng quý", semiAnnual:"Nửa năm",
+    premQuarter:"Phí / quý", premHalf:"Phí / nửa năm", startDate:"Ngày bắt đầu", nextDueDate:"Ngày đóng tiếp",
+    duration:"Thời hạn (năm)", saveIns:"Lưu bảo hiểm", started:"Bắt đầu:", durationLabel:"Thời hạn:", years:"năm",
+    overdue:"Quá hạn", daysLeft:"ngày nữa", perQuarter:"/quý", perHalf:"/nửa năm",
+    saved:"Đã tiết kiệm", target:"Mục tiêu", complete:"hoàn thành", savingsRec:"Đề xuất tiết kiệm",
+    avgMonInc:"Thu nhập TB/tháng", avgMonExp:"Chi tiêu TB/tháng", recMonth:"Nên tiết kiệm/tháng (20% thu nhập)",
+    practSug:"Đề xuất thực tế (50% dư)", emergFund:"Quỹ khẩn cấp (6 tháng chi)",
+    needMonth:"Cần/tháng cho mục tiêu", rule502030:"Quy tắc 50/30/20", needs50:"Thiết yếu (50%)", wants30:"Mong muốn (30%)", savings20:"Tiết kiệm (20%)",
+    noSavGoals:"Chưa có mục tiêu", addSavGoal:"+ Thêm mục tiêu", goalName:"Tên mục tiêu", targetAmt:"Số tiền mục tiêu",
+    amtSaved:"Đã tiết kiệm được", deadline:"Hạn chót", saveGoal:"Lưu mục tiêu", deposit:"+ Nạp tiền", depositBtn:"Nạp",
+    remaining:"Còn thiếu", need:"Cần", done:"Đạt",
+    reduceBefore:"Thu nhập không đủ chi. Cần giảm chi trước khi tiết kiệm.",
+    valueVND:"Giá trị (VND)", pnl:"Lãi/Lỗ", addInvest:"+ Thêm đầu tư", noInvest:"Chưa có đầu tư", type:"Loại", name:"Tên",
+    quantity:"Số lượng", buyPrice:"Giá mua", currentPrice:"Giá hiện tại", saveInvest:"Lưu đầu tư",
+    currency:"Tiền tệ", wallet:"Nguồn tiền", paidFor:"Chi cho", category:"Danh mục", note:"Ghi chú", date:"Ngày",
+    saveTx:"Lưu giao dịch", addBudgetTitle:"Thêm ngân sách", budgetLimit:"Hạn mức", saveBudget:"Lưu ngân sách",
+    amount:"Số tiền", amountMonth:"Số tiền / tháng", addIncomeItem:"Thêm thu nhập", addFixedCost:"Thêm chi phí cố định",
+    addExpIncome:"Thêm thu nhập dự kiến", addFixedCostTitle:"Thêm chi phí cố định",
+    initBalance:"Số dư ban đầu", curInitBal:"Số dư ban đầu hiện tại", addUpdateBal:"Thêm / Cập nhật",
+    del:"Xóa", total:"Tổng", actualLabel:"Thực tế", budgetLabel:"Ngân sách",
+    appTitle:"💳 Tài chính", feeYear:"Phí/năm",
+    pMonth:"Tháng", pQuarter:"Quý", pHalf:"6 Tháng", pYear:"Năm", forecast:"Dự toán",
+    recurring:"Hàng tháng (cố định)", oneTime:"Một lần",
+    lending:"Cho vay", loans:"Khoản vay", lentTotal:"Tổng cho vay", repaidTotal:"Đã trả", outstanding:"Còn nợ", interestRate:"Lãi suất %/năm", noLoans:"Chưa có khoản vay", loanAsset:"Tài sản cho vay",
+    phLunch:"VD: Ăn trưa", phBitcoin:"Bitcoin, VN30...", phAIA:"VD: AIA Platinum", phInsNote:"VD: BH nhân thọ + sức khỏe",
+    phSavGoal:"VD: Quỹ khẩn cấp, Du lịch...", phSavNote:"VD: 6 tháng chi phí sinh hoạt",
+    phIncItem:"VD: Lương, Freelance...", phFixItem:"VD: Tiền nhà, Hóa đơn, Học phí...",
+  },
+};
+const CURRENCIES = [
+  { code: "USDT", symbol: "₮", name: "Tether USDT", flag: "💎" },
+  { code: "VND", symbol: "₫", name: "Vietnamese Dong", flag: "🇻🇳" },
+  { code: "USD", symbol: "$", name: "US Dollar", flag: "🇺🇸" },
+  { code: "TWD", symbol: "NT$", name: "Taiwan Dollar", flag: "🇹🇼" },
+  { code: "AED", symbol: "د.إ", name: "UAE Dirham", flag: "🇦🇪" },
+];
+const WALLETS = [
+  { id: "cash", name: "Cash", icon: "💵", baseCurrency: null },
+  { id: "bank", name: "Bank", icon: "🏦", baseCurrency: null },
+  { id: "crypto", name: "Crypto Wallet", icon: "💎", baseCurrency: "USDT" },
+];
+const PEOPLE = [
+  { id: "me", name: "Personal", icon: "👩" },
+  { id: "family", name: "Family", icon: "👨‍👩‍👧‍👦" },
+];
+const CATEGORIES = {
+  expense: [
+    { id: "food", name: "Food", icon: "🍜", color: "#F97066" },
+    { id: "transport", name: "Transport", icon: "🛵", color: "#FDB022" },
+    { id: "rent", name: "Housing", icon: "🏠", color: "#7A5AF8" },
+    { id: "shopping", name: "Shopping", icon: "🛍️", color: "#EE46BC" },
+    { id: "health", name: "Health", icon: "💊", color: "#12B76A" },
+    { id: "entertainment", name: "Entertainment", icon: "🎬", color: "#F79009" },
+    { id: "education", name: "Education", icon: "📚", color: "#0EA5E9" },
+    { id: "bills", name: "Bills", icon: "📄", color: "#667085" },
+    { id: "family_exp", name: "Family Expenses", icon: "👨‍👩‍👧‍👦", color: "#F472B6" },
+    { id: "insurance", name: "Insurance", icon: "🛡️", color: "#06B6D4" },
+    { id: "lending", name: "Lending", icon: "🤝", color: "#F59E0B" },
+    { id: "charity", name: "Charity", icon: "💝", color: "#EC4899" },
+    { id: "personal", name: "Personal", icon: "💅", color: "#D444F1" },
+    { id: "other_exp", name: "Other", icon: "📦", color: "#98A2B3" },
+  ],
+  income: [
+    { id: "salary", name: "Salary", icon: "💰", color: "#12B76A" },
+    { id: "freelance", name: "Freelance", icon: "💻", color: "#0EA5E9" },
+    { id: "investment_income", name: "Investment", icon: "📈", color: "#7A5AF8" },
+    { id: "loan_repay", name: "Loan Repayment", icon: "🤝", color: "#F59E0B" },
+    { id: "gift", name: "Gift", icon: "🎁", color: "#EE46BC" },
+    { id: "other_inc", name: "Other", icon: "📥", color: "#98A2B3" },
+  ],
+};
+const INVESTMENT_TYPES = [
+  { id: "crypto", name: "Crypto", icon: "₿" },
+  { id: "stock", name: "Stocks", icon: "📊" },
+  { id: "gold", name: "Gold", icon: "🥇" },
+  { id: "savings", name: "Savings Deposit", icon: "🏦" },
+  { id: "other_inv", name: "Other", icon: "💼" },
+];
+const generateId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const formatCurrency = (amount, code) => {
+  if (code === "VND") return `${Math.round(amount).toLocaleString("en-US")}₫`;
+  const c = CURRENCIES.find(x => x.code === code);
+  return `${c?.symbol || ""}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+const getMonthKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}`; };
+const getMonthName = (k, language) => { const [y,m] = k.split("-"); return language==="vi" ? `Th${parseInt(m)} ${y}` : `M${parseInt(m)} ${y}`; };
+const getQuarterLabel = (q, y) => `Q${q}/${y}`;
+const STORAGE_KEYS = {
+  transactions: "finance:transactions",
+  budgets: "finance:budgets",
+  investments: "finance:investments",
+  insurance: "finance:insurance",
+  people: "finance:people",
+  rates: "finance:rates",
+  walletBalances: "finance:walletBalances",
+  savings: "finance:savings",
+  budgetPlan: "finance:budgetPlan",
+  loanRates: "finance:loanRates",
+  loans: "finance:loans",
+};
+const FALLBACK_RATES = { USD: 25400, USDT: 25400, TWD: 810, AED: 6910, VND: 1 };
+const fetchRates = async () => {
+  const apis = [
+    "https://open.er-api.com/v6/latest/USD",
+    "https://api.exchangerate-api.com/v4/latest/USD",
+  ];
+  for (const url of apis) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const r = data.rates || data.conversion_rates;
+      if (r && r.VND) {
+        const uv = r.VND;
+        const rates = { VND: 1, USD: uv, USDT: uv, TWD: r.TWD ? uv/r.TWD : 810, AED: r.AED ? uv/r.AED : 6910, updatedAt: new Date().toISOString() };
+        saveData(STORAGE_KEYS.rates, rates);
+        return rates;
+      }
+    } catch(e) { /* try next */ }
+  }
+  const cached = loadData(STORAGE_KEYS.rates, null);
+  return cached || { ...FALLBACK_RATES, updatedAt: null };
+};
+// ─── Demo Data ───
+const DEMO_TX = (() => {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth();
+  const d = (day) => `${y}-${String(m+1).padStart(2,"0")}-${String(Math.min(day,28)).padStart(2,"0")}`;
+  return [
+    { id:"d01", type:"income", amount:3200, currency:"USDT", category:"salary", wallet:"crypto", person:"me", note:"Lương tháng này", date:d(1) },
+    { id:"d02", type:"income", amount:450, currency:"USDT", category:"freelance", wallet:"crypto", person:"me", note:"Tư vấn", date:d(5) },
+    { id:"d10", type:"expense", amount:850000, currency:"VND", category:"food", wallet:"cash", person:"me", note:"Ăn lẩu", date:d(2) },
+    { id:"d11", type:"expense", amount:350000, currency:"VND", category:"food", wallet:"bank", person:"me", note:"Grab Food", date:d(4) },
+    { id:"d12", type:"expense", amount:1200000, currency:"VND", category:"food", wallet:"cash", person:"me", note:"Siêu thị", date:d(8) },
+    { id:"d13", type:"expense", amount:200000, currency:"VND", category:"transport", wallet:"bank", person:"me", note:"Grab đi làm", date:d(3) },
+    { id:"d14", type:"expense", amount:500000, currency:"VND", category:"health", wallet:"cash", person:"me", note:"Thuốc + khám", date:d(6) },
+    { id:"d20", type:"expense", amount:15000, currency:"TWD", category:"rent", wallet:"bank", person:"me", note:"Tiền nhà", date:d(1) },
+    { id:"d21", type:"expense", amount:1200, currency:"TWD", category:"shopping", wallet:"cash", person:"me", note:"Uniqlo", date:d(9) },
+    { id:"d22", type:"expense", amount:650, currency:"TWD", category:"entertainment", wallet:"cash", person:"me", note:"Xem phim", date:d(11) },
+    { id:"d30", type:"expense", amount:14.99, currency:"USD", category:"entertainment", wallet:"bank", person:"me", note:"Netflix", date:d(1) },
+    { id:"d31", type:"expense", amount:85, currency:"USDT", category:"shopping", wallet:"crypto", person:"me", note:"AirPods case", date:d(6) },
+    // Family expenses
+    { id:"d40", type:"expense", amount:5500000, currency:"VND", category:"education", wallet:"bank", person:"family", note:"Học phí 3 con", date:d(3) },
+    { id:"d43", type:"expense", amount:800000, currency:"VND", category:"family_exp", wallet:"cash", person:"family", note:"Quần áo con", date:d(7) },
+    { id:"d44", type:"expense", amount:650000, currency:"VND", category:"family_exp", wallet:"cash", person:"family", note:"Sách vở", date:d(10) },
+    { id:"d45", type:"expense", amount:450000, currency:"VND", category:"health", wallet:"bank", person:"family", note:"Khám con", date:d(12) },
+    { id:"d46", type:"expense", amount:3000000, currency:"VND", category:"family_exp", wallet:"bank", person:"family", note:"Gửi mẹ", date:d(5) },
+    { id:"d47", type:"expense", amount:2000000, currency:"VND", category:"family_exp", wallet:"bank", person:"family", note:"Hỗ trợ em", date:d(8) },
+    // Lending & charity
+    { id:"d50", type:"expense", amount:5000000, currency:"VND", category:"lending", wallet:"bank", person:"me", note:"Cho bạn Lan vay", date:d(4) },
+    { id:"d51", type:"expense", amount:1000000, currency:"VND", category:"charity", wallet:"cash", person:"me", note:"Từ thiện trường", date:d(6) },
+    { id:"d52", type:"expense", amount:500000, currency:"VND", category:"charity", wallet:"cash", person:"me", note:"Giúp hàng xóm", date:d(14) },
+  ];
+})();
+const DEMO_BUDGETS = (() => {
+  const mk = getMonthKey(new Date());
+  return [
+    { id:"b01", category:"food", limit:3000000, currency:"VND", month:mk, recurring:true },
+    { id:"b02", category:"rent", limit:15000, currency:"TWD", month:mk, recurring:true },
+    { id:"b03", category:"education", limit:8000000, currency:"VND", month:mk, recurring:true },
+    { id:"b04", category:"shopping", limit:150, currency:"USDT", month:mk, recurring:false },
+    { id:"b05", category:"family_exp", limit:8000000, currency:"VND", month:mk, recurring:true },
+    { id:"b06", category:"lending", limit:10000000, currency:"VND", month:mk, recurring:false },
+    { id:"b07", category:"charity", limit:2000000, currency:"VND", month:mk, recurring:false },
+  ];
+})();
+const DEMO_INVESTMENTS = [
+  { id:"i01", type:"crypto", name:"Bitcoin (BTC)", amount:0.05, currency:"USDT", buyPrice:62000, currentPrice:68500 },
+  { id:"i02", type:"crypto", name:"Ethereum (ETH)", amount:1.2, currency:"USDT", buyPrice:3200, currentPrice:3850 },
+  { id:"i03", type:"gold", name:"Vàng SJC", amount:2, currency:"VND", buyPrice:82000000, currentPrice:87500000 },
+  { id:"i04", type:"savings", name:"Tiết kiệm VCB", amount:1, currency:"VND", buyPrice:50000000, currentPrice:52500000 },
+];
+const DEMO_INSURANCE = [
+  { id:"ins01", provider:"AIA", policyName:"AIA Platinum", insuredPerson:"me", premium:8500000, currency:"VND", frequency:"quarterly", startDate:"2023-01-15", nextDue:"2026-07-15", totalYears:20, note:"BH nhân thọ + sức khỏe" },
+  { id:"ins02", provider:"AIA", policyName:"AIA Junior", insuredPerson:"family", premium:4200000, currency:"VND", frequency:"quarterly", startDate:"2023-06-01", nextDue:"2026-09-01", totalYears:18, note:"BH cho các con" },
+  { id:"ins03", provider:"Bảo Việt", policyName:"An Phát Cát Tường", insuredPerson:"me", premium:12500000, currency:"VND", frequency:"semi-annual", startDate:"2024-03-10", nextDue:"2026-09-10", totalYears:15, note:"BH nhân thọ Bảo Việt" },
+  { id:"ins04", provider:"Bảo Việt", policyName:"BV Junior Care", insuredPerson:"family", premium:6500000, currency:"VND", frequency:"semi-annual", startDate:"2024-06-01", nextDue:"2026-12-01", totalYears:18, note:"BH cho các con" },
+];
+// Wallet initial balances: { walletId: { currencyCode: amount } }
+const DEMO_WALLET_BALANCES = {
+  cash: { VND: 15000000, TWD: 5000 },
+  bank: { VND: 45000000, USD: 200 },
+  crypto: { USDT: 8500 },
+};
+const DEMO_SAVINGS = [
+  { id:"sv01", name:"Quỹ khẩn cấp", target:100000000, saved:35000000, currency:"VND", deadline:"2027-06-01", note:"6 tháng chi phí sinh hoạt", contribAmount:5000000, contribFreq:"monthly" },
+  { id:"sv02", name:"Du lịch Nhật", target:3000, saved:1200, currency:"USDT", deadline:"2026-12-01", note:"Gia đình đi Nhật", contribAmount:300, contribFreq:"monthly" },
+  { id:"sv03", name:"Laptop mới", target:1500, saved:800, currency:"USD", deadline:"2026-09-01", note:"MacBook Pro", contribAmount:700, contribFreq:"quarterly" },
+  { id:"sv04", name:"Học phí con năm sau", target:70000000, saved:25000000, currency:"VND", deadline:"2027-01-01", note:"Chuẩn bị học phí con", contribAmount:15000000, contribFreq:"quarterly" },
+];
+const DEMO_LOANS = [
+  { id:"lo01", lender:"VCB", type:"bank", amount:500000000, currency:"VND", rate:0.65, rateType:"month", startDate:"2024-06-15", termMonths:60, payFreq:"monthly", installment:11000000, paidAmount:132000000, note:"Mua ô tô" },
+  { id:"lo02", lender:"FE Credit", type:"bank", amount:50000000, currency:"VND", rate:1.2, rateType:"month", startDate:"2025-01-10", termMonths:24, payFreq:"monthly", installment:2800000, paidAmount:42000000, note:"Đồ nội thất" },
+  { id:"lo03", lender:"Chị Hoa", type:"personal", amount:30000000, currency:"VND", rate:0, rateType:"month", startDate:"2026-03-01", termMonths:0, payFreq:"monthly", installment:0, paidAmount:10000000, note:"Mượn tạm không lãi" },
+];
+const DEMO_BUDGET_PLAN = {
+  incomeItems: [
+    { id:"pi01", name:"Lương", amount:3200, currency:"USDT", recurring:true },
+    { id:"pi02", name:"Freelance", amount:450, currency:"USDT", recurring:true },
+    { id:"pi03", name:"Staking Rewards", amount:120, currency:"USDT", recurring:true },
+  ],
+  fixedItems: [
+    { id:"pf01", name:"Tiền nhà", amount:15000, currency:"TWD", recurring:true },
+    { id:"pf02", name:"Điện/nước/internet", amount:900, currency:"TWD", recurring:true },
+    { id:"pf03", name:"Học phí con", amount:5500000, currency:"VND", recurring:true },
+    { id:"pf04", name:"Gửi mẹ", amount:3000000, currency:"VND", recurring:true },
+    { id:"pf05", name:"Hỗ trợ em", amount:2000000, currency:"VND", recurring:true },
+    { id:"pf06", name:"Netflix + Subscriptions", amount:25, currency:"USD" },
+  ],
+};
+// ─── Shared Components ───
+const F = "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+function TabBar({ active, onChange, t }) {
+  const tabs = [
+    { id:"dashboard", label:t("overview"), icon:"◉" },
+    { id:"transactions", label:t("transactions"), icon:"⇄" },
+    { id:"budget", label:t("budget"), icon:"◎" },
+    { id:"insurance", label:t("insurance"), icon:"🛡️" },
+    { id:"savings", label:t("savings"), icon:"🎯" },
+    { id:"lending", label:t("lending"), icon:"🤝" },
+    { id:"loans", label:t("loans"), icon:"🏦" },
+    { id:"invest", label:t("invest"), icon:"△" },
+  ];
+  return (
+    <div style={{ display:"flex", gap:2, background:"rgba(15,23,42,0.03)", borderRadius:14, padding:4, marginBottom:20, overflowX:"auto" }}>
+      {tabs.map(tab => (
+        <button key={tab.id} onClick={() => onChange(tab.id)} style={{
+          flex:1, padding:"10px 4px", border:"none", borderRadius:11, cursor:"pointer", minWidth:60,
+          fontSize:11, fontWeight:active===tab.id?700:500, fontFamily:F,
+          background:active===tab.id?"#fff":"transparent", color:active===tab.id?"#0f172a":"#94a3b8",
+          boxShadow:active===tab.id?"0 2px 12px rgba(0,0,0,0.06)":"none", transition:"all 0.2s",
+        }}>
+          <span style={{ fontSize:14, display:"block", marginBottom:2 }}>{tab.icon}</span>{tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:1000, display:"flex", alignItems:"flex-end", justifyContent:"center", background:"rgba(0,0,0,0.35)", WebkitBackdropFilter:"blur(4px)", backdropFilter:"blur(4px)" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:"#fff", borderRadius:"24px 24px 0 0", width:"100%", maxWidth:480, maxHeight:"85vh", overflow:"auto", padding:"28px 24px 32px",
+        boxShadow:"0 -8px 40px rgba(0,0,0,0.12)", animation:"slideUp 0.25s ease-out",
+      }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+          <h3 style={{ margin:0, fontSize:18, fontWeight:700, color:"#0f172a", fontFamily:F }}>{title}</h3>
+          <button onClick={onClose} style={{ border:"none", background:"#f1f5f9", borderRadius:10, width:34, height:34, cursor:"pointer", fontSize:16, color:"#64748b", display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+function InputField({ label, ...props }) {
+  return (
+    <div style={{ marginBottom:16 }}>
+      <label style={{ fontSize:12, fontWeight:600, color:"#64748b", marginBottom:6, display:"block", fontFamily:F }}>{label}</label>
+      <input {...props} style={{ width:"100%", padding:"12px 14px", border:"2px solid #e2e8f0", borderRadius:12, fontSize:15, fontFamily:F, outline:"none", boxSizing:"border-box", background:"#fafbfc", ...props.style }}
+        onFocus={e => e.target.style.borderColor="#6366f1"} onBlur={e => e.target.style.borderColor="#e2e8f0"} />
+    </div>
+  );
+}
+function PillPicker({ label, items, selected, onSelect, multi=false }) {
+  return (
+    <div style={{ marginBottom:16 }}>
+      <label style={{ fontSize:12, fontWeight:600, color:"#64748b", marginBottom:8, display:"block", fontFamily:F }}>{label}</label>
+      <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+        {items.map(it => {
+          const sel = multi ? (selected||[]).includes(it.id) : selected === it.id;
+          return (
+            <button key={it.id} onClick={() => onSelect(it.id)} style={{
+              padding:"7px 12px", border:sel?`2px solid ${it.color||"#6366f1"}`:"2px solid #e2e8f0",
+              borderRadius:10, cursor:"pointer", fontSize:12, fontFamily:F,
+              background:sel?`${it.color||"#6366f1"}15`:"#fafbfc",
+              color:sel?(it.color||"#6366f1"):"#64748b", fontWeight:sel?700:500,
+            }}>
+              {it.icon} {it.name}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+function CurrencySelect({ value, onChange }) {
+  return (
+    <div style={{ marginBottom:16 }}>
+      <label style={{ fontSize:12, fontWeight:600, color:"#64748b", marginBottom:6, display:"block", fontFamily:F }}>Currency</label>
+      <select value={value} onChange={e => onChange(e.target.value)} style={{ width:"100%", padding:"12px 14px", border:"2px solid #e2e8f0", borderRadius:12, fontSize:15, fontFamily:F, outline:"none", background:"#fafbfc", cursor:"pointer", appearance:"none", boxSizing:"border-box" }}>
+        {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
+      </select>
+    </div>
+  );
+}
+function StatCard({ label, value, sub, color="#0f172a", bg="#f8fafc" }) {
+  return (
+    <div style={{ background:bg, borderRadius:16, padding:"16px 18px", flex:1, minWidth:120 }}>
+      <div style={{ fontSize:11, fontWeight:600, color:"#94a3b8", marginBottom:4, fontFamily:F }}>{label}</div>
+      <div style={{ fontSize:18, fontWeight:800, color, fontFamily:F, letterSpacing:"-0.5px" }}>{value}</div>
+      {sub && <div style={{ fontSize:10, color:"#94a3b8", marginTop:3, fontFamily:F }}>{sub}</div>}
+    </div>
+  );
+}
+function RateTicker({ rates }) {
+  if (!rates) return null;
+  return (
+    <div style={{ display:"flex", gap:6, overflowX:"auto", marginBottom:14, scrollbarWidth:"none" }}>
+      {CURRENCIES.filter(c=>c.code!=="VND").map(c => (
+        <div key={c.code} style={{ background:"#f8fafc", borderRadius:10, padding:"6px 12px", minWidth:"fit-content", display:"flex", alignItems:"center", gap:5, border:"1px solid #f1f5f9" }}>
+          <span style={{ fontSize:13 }}>{c.flag}</span>
+          <span style={{ fontSize:11, fontWeight:700, color:"#0f172a", fontFamily:F }}>{c.code}</span>
+          <span style={{ fontSize:10, color:"#64748b", fontFamily:F }}>{Math.round(rates[c.code]||0).toLocaleString("en-US")}₫</span>
+        </div>
+      ))}
+      {rates.updatedAt && <div style={{ display:"flex", alignItems:"center", fontSize:9, color:"#cbd5e1", fontFamily:F, paddingLeft:4, minWidth:"fit-content" }}>🔄 {new Date(rates.updatedAt).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}</div>}
+    </div>
+  );
+}
+function TxItem({ tx, onDelete, onEdit, toVND, n, formatVND, reportCur }) {
+  const isExp = tx.type==="expense";
+  const cat = (CATEGORIES[tx.type]||[]).find(c=>c.id===tx.category);
+  const wallet = WALLETS.find(w=>w.id===tx.wallet);
+  const person = PEOPLE.find(p=>p.id===tx.person);
+  const vnd = toVND(tx.amount, tx.currency);
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 0", borderBottom:"1px solid #f1f5f9" }}>
+      <div style={{ width:40, height:40, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, background:cat?`${cat.color}12`:"#f1f5f9" }}>
+        {cat?.icon||(isExp?"💸":"💰")}
+      </div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:13, fontWeight:600, color:"#0f172a", fontFamily:F, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+          {tx.note||(cat?n(cat.id):null)||(isExp?"Expense":"Income")}
+        </div>
+        <div style={{ fontSize:10, color:"#94a3b8", fontFamily:F, marginTop:2, display:"flex", gap:6, flexWrap:"wrap" }}>
+          <span>{cat?n(cat.id):null}</span>
+          {person && <span>{person.icon}{person.name}</span>}
+          {wallet && <span>{wallet.icon}</span>}
+          <span>{new Date(tx.date).toLocaleDateString("en-US")}</span>
+        </div>
+      </div>
+      <div style={{ textAlign:"right" }}>
+        <div style={{ fontSize:14, fontWeight:700, fontFamily:F, color:isExp?"#F97066":"#12B76A" }}>
+          {isExp?"−":"+"}{formatCurrency(tx.amount, tx.currency)}
+        </div>
+        {tx.currency!==reportCur && <div style={{ fontSize:10, color:"#94a3b8", fontFamily:F }}>≈ {formatVND(vnd)}</div>}
+      </div>
+      <button onClick={()=>onEdit(tx)} style={{ border:"none", background:"none", cursor:"pointer", fontSize:12, color:"#cbd5e1", padding:3, borderRadius:6 }}
+        onMouseEnter={e=>e.target.style.color="#6366f1"} onMouseLeave={e=>e.target.style.color="#cbd5e1"}>✎</button>
+      <button onClick={()=>onDelete(tx.id)} style={{ border:"none", background:"none", cursor:"pointer", fontSize:13, color:"#cbd5e1", padding:3, borderRadius:6 }}
+        onMouseEnter={e=>e.target.style.color="#F97066"} onMouseLeave={e=>e.target.style.color="#cbd5e1"}>✕</button>
+    </div>
+  );
+}
+// ─── Main App ───
+const App = function FinanceApp() {
+  const [tab, setTab] = useState("dashboard");
+  const [lang, setLang] = useState(() => { try { return localStorage.getItem("finance:lang") || "en"; } catch { return "en"; } });
+  const [screenW, setScreenW] = useState(typeof window !== "undefined" ? window.innerWidth : 400);
+  const isTablet = screenW >= 768;
+  const isDesktop = screenW >= 1024;
+  useEffect(() => {
+    const handleResize = () => setScreenW(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  const t = useCallback((key) => (T[lang] || T.en)[key] || key, [lang]);
+  const n = useCallback((id) => (N[lang] || N.en)[id] || id, [lang]);
+  const toggleLang = () => { const next = lang === "en" ? "vi" : "en"; setLang(next); try { localStorage.setItem("finance:lang", next); } catch {} };
+  const [transactions, setTransactions] = useState([]);
+  const [budgets, setBudgets] = useState([]);
+  const [investments, setInvestments] = useState([]);
+  const [insurance, setInsurance] = useState([]);
+  const [savings, setSavings] = useState([]);
+  const [walletBalances, setWalletBalances] = useState({});
+  const [budgetPlan, setBudgetPlan] = useState({ incomeItems: [], fixedItems: [] });
+  const [loanRates, setLoanRates] = useState({});
+  const [loans, setLoans] = useState([]);
+  const [showAddLoan, setShowAddLoan] = useState(false);
+  const [editLoanId, setEditLoanId] = useState(null);
+  const [loanForm, setLoanForm] = useState({ lender:"", type:"bank", amount:"", currency:"VND", rate:"", rateType:"month", startDate:"", termMonths:"", payFreq:"monthly", installment:"", paidAmount:"", note:"" });
+  const [people, setPeople] = useState(PEOPLE);
+  const [loading, setLoading] = useState(true);
+  const [rates, setRates] = useState(FALLBACK_RATES);
+  const [isDemo, setIsDemo] = useState(false);
+  const [filterMonth, setFilterMonth] = useState(getMonthKey(new Date()));
+  const [filterPerson, setFilterPerson] = useState("all");
+  // Modals
+  const [showAddTx, setShowAddTx] = useState(false);
+  const [showAddBudget, setShowAddBudget] = useState(false);
+  const [showAddInvest, setShowAddInvest] = useState(false);
+  const [showAddInsurance, setShowAddInsurance] = useState(false);
+  const [showAddSaving, setShowAddSaving] = useState(false);
+  const [showAddPlanItem, setShowAddPlanItem] = useState(null);
+  const [showBudgetMenu, setShowBudgetMenu] = useState(false);
+  const [showLendingMenu, setShowLendingMenu] = useState(false); // "income" | "fixed" | null
+  const [showEditWallet, setShowEditWallet] = useState(null);
+  const [walletEditForm, setWalletEditForm] = useState({ currency: "USDT", amount: "" });
+  const [txForm, setTxForm] = useState({ type:"expense", amount:"", currency:"USDT", category:"", wallet:"cash", person:"me", note:"", date:new Date().toISOString().split("T")[0] });
+  const [budgetForm, setBudgetForm] = useState({ category:"food", limit:"", currency:"USDT", month:getMonthKey(new Date()), recurring:true });
+  const [investForm, setInvestForm] = useState({ type:"crypto", name:"", amount:"", currency:"USDT", buyPrice:"", currentPrice:"" });
+  const [insForm, setInsForm] = useState({ provider:"AIA", policyName:"", insuredPerson:"me", premium:"", currency:"USDT", frequency:"quarterly", startDate:"", nextDue:"", totalYears:"", note:"" });
+  const [savingForm, setSavingForm] = useState({ name:"", target:"", saved:"", currency:"USDT", deadline:"", note:"", contribAmount:"", contribFreq:"monthly" });
+  const [depositForm, setDepositForm] = useState({ id: null, amount: "" });
+  const [planItemForm, setPlanItemForm] = useState({ name:"", amount:"", currency:"USDT", recurring:true });
+  const [editTxId, setEditTxId] = useState(null);
+  const [editInvId, setEditInvId] = useState(null);
+  const [editInsId, setEditInsId] = useState(null);
+  const [editSvId, setEditSvId] = useState(null);
+  const [budgetPeriod, setBudgetPeriod] = useState(1);
+  const [reportCur, setReportCur] = useState(() => { try { return localStorage.getItem("finance:reportCur") || "USD"; } catch { return "USD"; } });
+  const setReport = (cur) => { setReportCur(cur); try { localStorage.setItem("finance:reportCur", cur); } catch {} };
+  // Convert any amount to report currency (function named toVND for backward compat)
+  const toVND = useCallback((amt, cur) => {
+    if (cur === reportCur) return amt;
+    const r = rates || FALLBACK_RATES;
+    const amtInVND = cur === "VND" ? amt : amt * (r[cur] || FALLBACK_RATES[cur] || 25400);
+    if (reportCur === "VND") return amtInVND;
+    const reportRate = r[reportCur] || FALLBACK_RATES[reportCur] || 25400;
+    return amtInVND / reportRate;
+  }, [rates, reportCur]);
+  // Format in report currency
+  const formatVND = useCallback((amount) => {
+    const c = CURRENCIES.find(x => x.code === reportCur);
+    if (reportCur === "VND") return `${Math.round(amount).toLocaleString("en-US")}₫`;
+    return `${c?.symbol || "$"}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }, [reportCur]);
+  // Load font
+  useEffect(() => {
+    try {
+      const link = document.createElement("link");
+      link.href = "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,400&display=swap";
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+    } catch(e) { /* font loading is optional */ }
+  }, []);
+  // Load data
+  useEffect(() => {
+    (async () => {
+      try {
+        const [tx,bg,inv,ins,pp,wb,sv,bp,lr,lo] = await Promise.all([
+          loadData(STORAGE_KEYS.transactions,[]),
+          loadData(STORAGE_KEYS.budgets,[]),
+          loadData(STORAGE_KEYS.investments,[]),
+          loadData(STORAGE_KEYS.insurance,[]),
+          loadData(STORAGE_KEYS.people, PEOPLE),
+          loadData(STORAGE_KEYS.walletBalances, {}),
+          loadData(STORAGE_KEYS.savings, []),
+          loadData(STORAGE_KEYS.budgetPlan, { incomeItems:[], fixedItems:[] }),
+          loadData(STORAGE_KEYS.loanRates, {}),
+          loadData(STORAGE_KEYS.loans, []),
+        ]);
+        if (tx.length===0 && bg.length===0 && inv.length===0 && ins.length===0 && Object.keys(wb).length===0 && sv.length===0) {
+          setTransactions(DEMO_TX); setBudgets(DEMO_BUDGETS); setInvestments(DEMO_INVESTMENTS); setInsurance(DEMO_INSURANCE); setWalletBalances(DEMO_WALLET_BALANCES); setSavings(DEMO_SAVINGS); setBudgetPlan(DEMO_BUDGET_PLAN); setLoans(DEMO_LOANS); setIsDemo(true);
+        } else {
+          setTransactions(tx); setBudgets(bg); setInvestments(inv); setInsurance(ins); setWalletBalances(wb); setSavings(sv); setBudgetPlan(bp); setLoanRates(lr); setLoans(lo);
+        }
+        setPeople(pp);
+      } catch(e) {
+        console.error("Load error:", e);
+        setTransactions(DEMO_TX); setBudgets(DEMO_BUDGETS); setInvestments(DEMO_INVESTMENTS); setInsurance(DEMO_INSURANCE); setWalletBalances(DEMO_WALLET_BALANCES); setSavings(DEMO_SAVINGS); setBudgetPlan(DEMO_BUDGET_PLAN); setLoans(DEMO_LOANS); setIsDemo(true);
+      }
+      try { const r = await fetchRates(); setRates(r || FALLBACK_RATES); } catch(e) { console.error("Rate error:", e); }
+      setLoading(false);
+    })();
+  }, []);
+  const saveTx = useCallback(d => { setTransactions(d); saveData(STORAGE_KEYS.transactions,d); },[]);
+  const saveBg = useCallback(d => { setBudgets(d); saveData(STORAGE_KEYS.budgets,d); },[]);
+  const saveInv = useCallback(d => { setInvestments(d); saveData(STORAGE_KEYS.investments,d); },[]);
+  const saveIns = useCallback(d => { setInsurance(d); saveData(STORAGE_KEYS.insurance,d); },[]);
+  const saveWB = useCallback(d => { setWalletBalances(d); saveData(STORAGE_KEYS.walletBalances,d); },[]);
+  const saveSv = useCallback(d => { setSavings(d); saveData(STORAGE_KEYS.savings,d); },[]);
+  const saveBP = useCallback(d => { setBudgetPlan(d); saveData(STORAGE_KEYS.budgetPlan,d); },[]);
+  const saveLR = useCallback(d => { setLoanRates(d); saveData(STORAGE_KEYS.loanRates,d); },[]);
+  const saveLo = useCallback(d => { setLoans(d); saveData(STORAGE_KEYS.loans,d); },[]);
+  const addLoan = () => {
+    if (!loanForm.lender || !loanForm.amount) return;
+    const data = { ...loanForm, amount:parseFloat(loanForm.amount), rate:parseFloat(loanForm.rate||0), termMonths:parseInt(loanForm.termMonths||0), installment:parseFloat(loanForm.installment||0), paidAmount:parseFloat(loanForm.paidAmount||0) };
+    if (editLoanId) {
+      saveLo(loans.map(l => l.id===editLoanId ? {...data, id:editLoanId} : l));
+      setEditLoanId(null);
+    } else {
+      saveLo([{...data, id:generateId()}, ...loans]);
+    }
+    setShowAddLoan(false);
+    setLoanForm({ lender:"", type:"bank", amount:"", currency:"VND", rate:"", rateType:"month", startDate:"", termMonths:"", payFreq:"monthly", installment:"", paidAmount:"", note:"" });
+  };
+  const editLoan = (loan) => {
+    setLoanForm({...loan, amount:String(loan.amount), rate:String(loan.rate||""), termMonths:String(loan.termMonths||""), installment:String(loan.installment||""), paidAmount:String(loan.paidAmount||"")});
+    setEditLoanId(loan.id);
+    setShowAddLoan(true);
+  };
+  const loadDemo = () => { setTransactions(DEMO_TX); setBudgets(DEMO_BUDGETS); setInvestments(DEMO_INVESTMENTS); setInsurance(DEMO_INSURANCE); setWalletBalances(DEMO_WALLET_BALANCES); setSavings(DEMO_SAVINGS); setBudgetPlan(DEMO_BUDGET_PLAN); setLoans(DEMO_LOANS); setIsDemo(true); };
+  const clearAll = () => { saveTx([]); saveBg([]); saveInv([]); saveIns([]); saveWB({}); saveSv([]); saveBP({incomeItems:[],fixedItems:[]}); saveLR({}); saveLo([]); setIsDemo(false); };
+  const refreshRates = async () => { const r = await fetchRates(); setRates(r || FALLBACK_RATES); };
+  // Budget plan CRUD
+  const addPlanItem = () => {
+    if (!planItemForm.name || !planItemForm.amount || !showAddPlanItem) return;
+    const item = { id: generateId(), name: planItemForm.name, amount: parseFloat(planItemForm.amount), currency: planItemForm.currency, recurring: planItemForm.recurring !== false };
+    const key = showAddPlanItem === "income" ? "incomeItems" : "fixedItems";
+    saveBP({ ...budgetPlan, [key]: [...(budgetPlan[key]||[]), item] });
+    setShowAddPlanItem(null);
+    setPlanItemForm({ name:"", amount:"", currency:"USDT", recurring:true });
+  };
+  const removePlanItem = (type, id) => {
+    const key = type === "income" ? "incomeItems" : "fixedItems";
+    saveBP({ ...budgetPlan, [key]: (budgetPlan[key]||[]).filter(x => x.id !== id) });
+  };
+  // Edit wallet initial balance
+  const addWalletBalance = () => {
+    if (!walletEditForm.amount || !showEditWallet) return;
+    const updated = { ...walletBalances };
+    if (!updated[showEditWallet]) updated[showEditWallet] = {};
+    updated[showEditWallet][walletEditForm.currency] = parseFloat(walletEditForm.amount);
+    saveWB(updated);
+    setWalletEditForm({ currency: "VND", amount: "" });
+  };
+  const removeWalletBalance = (walletId, cur) => {
+    const updated = { ...walletBalances };
+    if (updated[walletId]) { delete updated[walletId][cur]; if (Object.keys(updated[walletId]).length===0) delete updated[walletId]; }
+    saveWB(updated);
+  };
+  // Savings CRUD
+  const addSaving = () => {
+    if (!savingForm.name || !savingForm.target) return;
+    const data = { ...savingForm, target:parseFloat(savingForm.target), saved:parseFloat(savingForm.saved||0), contribAmount:parseFloat(savingForm.contribAmount||0) };
+    if (editSvId) {
+      saveSv(savings.map(s => s.id===editSvId ? {...data, id:editSvId} : s));
+      setEditSvId(null);
+    } else {
+      saveSv([{...data, id: generateId()}, ...savings]);
+    }
+    setShowAddSaving(false);
+    setSavingForm({ name:"", target:"", saved:"", currency:"VND", deadline:"", note:"", contribAmount:"", contribFreq:"monthly" });
+  };
+  const editSaving = (sv) => {
+    setSavingForm({...sv, target:String(sv.target), saved:String(sv.saved||""), contribAmount:String(sv.contribAmount||""), contribFreq:sv.contribFreq||"monthly"});
+    setEditSvId(sv.id);
+    setShowAddSaving(true);
+  };
+  const depositToSaving = (id, amount) => {
+    if (!amount) return;
+    const updated = savings.map(s => s.id === id ? { ...s, saved: s.saved + parseFloat(amount) } : s);
+    saveSv(updated);
+    setDepositForm({ id: null, amount: "" });
+  };
+  const deleteSaving = (id) => saveSv(savings.filter(s => s.id !== id));
+  const addTransaction = () => {
+    if (!txForm.amount||!txForm.category) return;
+    if (editTxId) {
+      saveTx(transactions.map(t => t.id===editTxId ? {...txForm, id:editTxId, amount:parseFloat(txForm.amount)} : t));
+      setEditTxId(null);
+    } else {
+      saveTx([{ ...txForm, id:generateId(), amount:parseFloat(txForm.amount) }, ...transactions]);
+    }
+    setShowAddTx(false);
+    setTxForm({ type:"expense", amount:"", currency:"VND", category:"", wallet:"cash", person:"me", note:"", date:new Date().toISOString().split("T")[0] });
+  };
+  const editTransaction = (tx) => {
+    setTxForm({...tx, amount:String(tx.amount)});
+    setEditTxId(tx.id);
+    setShowAddTx(true);
+  };
+  const addBudget = () => {
+    if (!budgetForm.limit) return;
+    const inputPeriod = budgetForm.inputPeriod || 1;
+    const monthlyLimit = budgetForm.recurring ? parseFloat(budgetForm.limit) / inputPeriod : parseFloat(budgetForm.limit);
+    const saveData = { category:budgetForm.category, limit:monthlyLimit, currency:budgetForm.currency, month:budgetForm.month, recurring:budgetForm.recurring };
+    const ex = budgets.findIndex(b=>b.category===budgetForm.category&&b.month===budgetForm.month);
+    let u; if (ex>=0) { u=[...budgets]; u[ex]={...saveData,id:u[ex].id}; } else { u=[...budgets,{...saveData,id:generateId()}]; }
+    saveBg(u); setShowAddBudget(false); setBudgetForm({category:"food",limit:"",currency:"VND",month:getMonthKey(new Date()),recurring:true,inputPeriod:1});
+  };
+  const addInvestment = () => {
+    if (!investForm.name||!investForm.amount) return;
+    const bp = parseFloat(investForm.buyPrice||0);
+    if (editInvId) {
+      saveInv(investments.map(i => i.id===editInvId ? {...investForm, id:editInvId, amount:parseFloat(investForm.amount), buyPrice:bp, currentPrice:parseFloat(investForm.currentPrice||bp)} : i));
+      setEditInvId(null);
+    } else {
+      saveInv([{...investForm, id:generateId(), amount:parseFloat(investForm.amount), buyPrice:bp, currentPrice:bp}, ...investments]);
+    }
+    setShowAddInvest(false); setInvestForm({type:"crypto",name:"",amount:"",currency:"USDT",buyPrice:"",currentPrice:""});
+  };
+  const editInvestment = (inv) => {
+    setInvestForm({...inv, amount:String(inv.amount), buyPrice:String(inv.buyPrice||""), currentPrice:String(inv.currentPrice||"")});
+    setEditInvId(inv.id);
+    setShowAddInvest(true);
+  };
+  const addInsurance = () => {
+    if (!insForm.policyName||!insForm.premium) return;
+    if (editInsId) {
+      saveIns(insurance.map(i => i.id===editInsId ? {...insForm, id:editInsId, premium:parseFloat(insForm.premium), totalYears:parseInt(insForm.totalYears||0)} : i));
+      setEditInsId(null);
+    } else {
+      saveIns([{...insForm, id:generateId(), premium:parseFloat(insForm.premium), totalYears:parseInt(insForm.totalYears||0)}, ...insurance]);
+    }
+    setShowAddInsurance(false); setInsForm({provider:"AIA",policyName:"",insuredPerson:"me",premium:"",currency:"VND",frequency:"quarterly",startDate:"",nextDue:"",totalYears:"",note:""});
+  };
+  const editInsurance = (ins) => {
+    setInsForm({...ins, premium:String(ins.premium), totalYears:String(ins.totalYears||"")});
+    setEditInsId(ins.id);
+    setShowAddInsurance(true);
+  };
+  // ─── Calculations ───
+  const monthTx = useMemo(() => {
+    let tx = transactions.filter(t => getMonthKey(t.date)===filterMonth);
+    if (filterPerson!=="all") tx = tx.filter(t => t.person===filterPerson);
+    return tx;
+  }, [transactions, filterMonth, filterPerson]);
+  const totalExpVND = useMemo(() => monthTx.filter(t=>t.type==="expense").reduce((s,t)=>s+toVND(t.amount,t.currency),0), [monthTx,toVND]);
+  const totalIncVND = useMemo(() => monthTx.filter(t=>t.type==="income").reduce((s,t)=>s+toVND(t.amount,t.currency),0), [monthTx,toVND]);
+  const balanceVND = totalIncVND - totalExpVND;
+  // Opening balance: initial wallets + all tx before filterMonth
+  const openingBalanceVND = useMemo(() => {
+    let bal = 0;
+    Object.values(walletBalances).forEach(currencies => {
+      Object.entries(currencies).forEach(([cur, amt]) => { bal += toVND(amt, cur); });
+    });
+    transactions.forEach(tx => {
+      if (getMonthKey(tx.date) < filterMonth) {
+        bal += tx.type === "income" ? toVND(tx.amount, tx.currency) : -toVND(tx.amount, tx.currency);
+      }
+    });
+    return bal;
+  }, [transactions, walletBalances, filterMonth, toVND]);
+  const closingBalanceVND = openingBalanceVND + balanceVND;
+  const expByCat = useMemo(() => {
+    const m = {};
+    monthTx.filter(t=>t.type==="expense").forEach(t => {
+      if (!m[t.category]) m[t.category] = { vnd:0, details:{} };
+      m[t.category].vnd += toVND(t.amount, t.currency);
+      m[t.category].details[t.currency] = (m[t.category].details[t.currency]||0) + t.amount;
+    });
+    return m;
+  }, [monthTx, toVND]);
+  const expByPerson = useMemo(() => {
+    const m = {};
+    monthTx.filter(t=>t.type==="expense").forEach(t => {
+      const pid = t.person||"me";
+      m[pid] = (m[pid]||0) + toVND(t.amount, t.currency);
+    });
+    return m;
+  }, [monthTx, toVND]);
+  const expByWallet = useMemo(() => {
+    const m = {};
+    monthTx.filter(t=>t.type==="expense").forEach(t => {
+      const wid = t.wallet||"cash";
+      if (!m[wid]) m[wid] = { vnd: 0, byCurrency: {} };
+      m[wid].vnd += toVND(t.amount, t.currency);
+      if (!m[wid].byCurrency[t.currency]) m[wid].byCurrency[t.currency] = 0;
+      m[wid].byCurrency[t.currency] += t.amount;
+    });
+    return m;
+  }, [monthTx, toVND]);
+  const incByWallet = useMemo(() => {
+    const m = {};
+    monthTx.filter(t=>t.type==="income").forEach(t => {
+      const wid = t.wallet||"cash";
+      if (!m[wid]) m[wid] = { vnd: 0, byCurrency: {} };
+      m[wid].vnd += toVND(t.amount, t.currency);
+      if (!m[wid].byCurrency[t.currency]) m[wid].byCurrency[t.currency] = 0;
+      m[wid].byCurrency[t.currency] += t.amount;
+    });
+    return m;
+  }, [monthTx, toVND]);
+  // Convert between any two currencies via VND
+  const convertCurrency = useCallback((amount, fromCur, toCur) => {
+    if (fromCur === toCur) return amount;
+    const vndAmount = toVND(amount, fromCur);
+    if (toCur === "VND") return vndAmount;
+    const r = rates || FALLBACK_RATES;
+    const toRate = r[toCur] || FALLBACK_RATES[toCur] || 25400;
+    return vndAmount / toRate;
+  }, [rates, toVND]);
+  // Current wallet balances = initial + ALL income - ALL expense
+  // Wallets with baseCurrency (e.g. crypto/USDT): auto-convert all tx to base currency
+  // Wallets without baseCurrency (cash, bank): keep each currency separate
+  const walletCurrentBalances = useMemo(() => {
+    const result = {};
+    WALLETS.forEach(w => {
+      result[w.id] = { ...(walletBalances[w.id] || {}) };
+    });
+    transactions.forEach(t => {
+      const wid = t.wallet || "cash";
+      const wallet = WALLETS.find(w => w.id === wid);
+      const baseCur = wallet?.baseCurrency;
+      if (!result[wid]) result[wid] = {};
+      if (baseCur && t.currency !== baseCur) {
+        // Auto-convert to wallet's base currency (e.g. crypto: all → USDT)
+        const converted = convertCurrency(t.amount, t.currency, baseCur);
+        if (!result[wid][baseCur]) result[wid][baseCur] = 0;
+        if (t.type === "income") result[wid][baseCur] += converted;
+        else result[wid][baseCur] -= converted;
+      } else {
+        // Keep original currency (cash/bank or same currency as base)
+        const cur = baseCur || t.currency;
+        if (!result[wid][cur]) result[wid][cur] = 0;
+        if (t.type === "income") result[wid][cur] += t.amount;
+        else result[wid][cur] -= t.amount;
+      }
+    });
+    return result;
+  }, [transactions, walletBalances, convertCurrency]);
+  // Total net worth in VND across all wallets
+  const totalNetWorthVND = useMemo(() => {
+    let total = 0;
+    Object.values(walletCurrentBalances).forEach(currencies => {
+      Object.entries(currencies).forEach(([cur, amt]) => {
+        total += toVND(amt, cur);
+      });
+    });
+    return total;
+  }, [walletCurrentBalances, toVND]);
+  const monthOptions = useMemo(() => {
+    const ms = new Set([getMonthKey(new Date())]);
+    transactions.forEach(t => ms.add(getMonthKey(t.date)));
+    return Array.from(ms).sort().reverse();
+  }, [transactions]);
+  const totalInvValVND = useMemo(() => investments.reduce((s,i)=>s+toVND(i.amount*(i.currentPrice||0),i.currency),0), [investments,toVND]);
+  const totalInvCostVND = useMemo(() => investments.reduce((s,i)=>s+toVND(i.amount*(i.buyPrice||0),i.currency),0), [investments,toVND]);
+  // Insurance: total yearly cost in VND (supports quarterly and semi-annual)
+  const yearlyInsVND = useMemo(() => insurance.reduce((s, i) => {
+    const premVND = toVND(i.premium, i.currency);
+    const multiplier = i.frequency === "semi-annual" ? 2 : 4;
+    return s + premVND * multiplier;
+  }, 0), [insurance, toVND]);
+  const nextPaymentInsVND = useMemo(() => insurance.reduce((s, i) => s + toVND(i.premium, i.currency), 0), [insurance, toVND]);
+  // Next due insurance
+  const upcomingIns = useMemo(() => {
+    const now = new Date();
+    return insurance.filter(i => i.nextDue).sort((a,b) => new Date(a.nextDue)-new Date(b.nextDue));
+  }, [insurance]);
+  // ── Budget Plan Calculations ──
+  const planIncomeVND = useMemo(() => (budgetPlan.incomeItems||[]).reduce((s, i) => s + toVND(i.amount, i.currency), 0), [budgetPlan, toVND]);
+  const planFixedVND = useMemo(() => (budgetPlan.fixedItems||[]).reduce((s, i) => s + toVND(i.amount, i.currency), 0), [budgetPlan, toVND]);
+  // Monthly insurance cost (auto-include from insurance tab)
+  const monthlyInsVND = useMemo(() => insurance.reduce((s, i) => {
+    const premVND = toVND(i.premium, i.currency);
+    const monthly = i.frequency === "semi-annual" ? premVND / 6 : premVND / 3;
+    return s + monthly;
+  }, 0), [insurance, toVND]);
+  const planTotalFixedVND = planFixedVND + monthlyInsVND;
+  const planAvailableVND = planIncomeVND - planTotalFixedVND;
+  const planDiscretionaryVND = useMemo(() => budgets.filter(b => b.month === filterMonth).reduce((s, b) => s + toVND(b.limit, b.currency), 0), [budgets, filterMonth, toVND]);
+  const planUnallocatedVND = planAvailableVND - planDiscretionaryVND;
+  // Previous month data for comparison
+  const prevMonthKey = useMemo(() => {
+    const [y, m] = filterMonth.split("-").map(Number);
+    return m === 1 ? `${y-1}-12` : `${y}-${String(m-1).padStart(2,"0")}`;
+  }, [filterMonth]);
+  const prevMonthTx = useMemo(() => transactions.filter(t => getMonthKey(t.date) === prevMonthKey), [transactions, prevMonthKey]);
+  const prevExpVND = useMemo(() => prevMonthTx.filter(t=>t.type==="expense").reduce((s,t)=>s+toVND(t.amount,t.currency),0), [prevMonthTx, toVND]);
+  const prevIncVND = useMemo(() => prevMonthTx.filter(t=>t.type==="income").reduce((s,t)=>s+toVND(t.amount,t.currency),0), [prevMonthTx, toVND]);
+  // Monthly trend (last 6 months)
+  const monthlyTrend = useMemo(() => {
+    const months = [];
+    const [cy, cm] = filterMonth.split("-").map(Number);
+    for (let i = 5; i >= 0; i--) {
+      let mm = cm - i, yy = cy;
+      while (mm <= 0) { mm += 12; yy--; }
+      const key = `${yy}-${String(mm).padStart(2,"0")}`;
+      const txs = transactions.filter(t => getMonthKey(t.date) === key);
+      const inc = txs.filter(t=>t.type==="income").reduce((s,t)=>s+toVND(t.amount,t.currency),0);
+      const exp = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+toVND(t.amount,t.currency),0);
+      months.push({ key, label: `Th${mm}`, inc, exp, balance: inc - exp });
+    }
+    return months;
+  }, [transactions, filterMonth, toVND]);
+  // Pie chart data for categories
+  const catPieData = useMemo(() => {
+    return Object.entries(expByCat)
+      .map(([cid, data]) => {
+        const cat = CATEGORIES.expense.find(c=>c.id===cid);
+        return { name: n(cid) || cid, value: data.vnd, color: cat?.color || "#94a3b8" };
+      })
+      .sort((a,b) => b.value - a.value);
+  }, [expByCat]);
+  // Smart evaluation
+  const evaluation = useMemo(() => {
+    const items = [];
+    if (totalIncVND > 0) {
+      const saveRate = ((totalIncVND - totalExpVND) / totalIncVND * 100);
+      if (saveRate >= 30) items.push({ type: "good", icon: "🌟", text: `${t("savingsRate")} ${saveRate.toFixed(0)}%, ${t("excellent")}` });
+      else if (saveRate >= 10) items.push({ type: "ok", icon: "👍", text: `${t("savingsRate")} ${saveRate.toFixed(0)}%, ${t("acceptable")}` });
+      else if (saveRate >= 0) items.push({ type: "warn", icon: "⚡", text: `${t("savingsRate")} ${saveRate.toFixed(0)}%, ${t("reducExp")}` });
+      else items.push({ type: "bad", icon: "🚨", text: `${t("spendExceed")} ${formatVND(Math.abs(totalIncVND - totalExpVND))}, ${t("overspending")}` });
+    }
+    if (prevExpVND > 0) {
+      const diff = totalExpVND - prevExpVND;
+      const pct = (diff / prevExpVND * 100).toFixed(0);
+      if (diff > 0) items.push({ type: "warn", icon: "📈", text: `${t("spendInc")} ${pct}% ${t("vsLast")} (+${formatVND(diff)}).` });
+      else if (diff < 0) items.push({ type: "good", icon: "📉", text: `${t("spendDec")} ${Math.abs(pct)}% ${t("vsLast")} (${formatVND(diff)}).` });
+      else items.push({ type: "ok", icon: "➡️", text: t("spendSimilar") });
+    }
+    budgets.filter(b => b.month === filterMonth).forEach(b => {
+      const limVND = toVND(b.limit, b.currency);
+      const spent = expByCat[b.category]?.vnd || 0;
+      if (spent > limVND) items.push({ type: "bad", icon: "🔴", text: `${n(b.category)}: ${t("overBudget")} ${formatVND(spent - limVND)}.` });
+      else if (spent > limVND * 0.8) items.push({ type: "warn", icon: "🟡", text: `${n(b.category)}: ${t("used")} ${(spent/limVND*100).toFixed(0)}% ${t("ofBudget")}` });
+    });
+    if (catPieData.length > 0) {
+      const top = catPieData[0];
+      const pct = totalExpVND > 0 ? (top.value / totalExpVND * 100).toFixed(0) : 0;
+      items.push({ type: "info", icon: "🏷️", text: `${t("topSpend")} ${top.name} (${pct}%, ${formatVND(top.value)}).` });
+    }
+    const familyExp = expByPerson["family"] || 0;
+    const meExp = expByPerson["me"] || 0;
+    if (familyExp > 0 && meExp > 0) {
+      const familyPct = (familyExp / totalExpVND * 100).toFixed(0);
+      items.push({ type: "info", icon: "👨‍👩‍👧‍👦", text: `${t("familyAccounts")} ${familyPct}% ${t("ofSpending")} (${formatVND(familyExp)}).` });
+    }
+    return items;
+  }, [totalIncVND, totalExpVND, prevExpVND, budgets, filterMonth, expByCat, catPieData, expByPerson, toVND, t, n]);
+  // Savings calculations
+  const totalSavedVND = useMemo(() => savings.reduce((s, sv) => s + toVND(sv.saved, sv.currency), 0), [savings, toVND]);
+  const totalTargetVND = useMemo(() => savings.reduce((s, sv) => s + toVND(sv.target, sv.currency), 0), [savings, toVND]);
+  // Smart savings recommendation based on 3-month average
+  const savingsRecommendation = useMemo(() => {
+    // Calculate average monthly income and expense from last 3 months
+    const [cy, cm] = filterMonth.split("-").map(Number);
+    let totalInc3 = 0, totalExp3 = 0, monthsWithData = 0;
+    for (let i = 0; i < 3; i++) {
+      let mm = cm - i, yy = cy;
+      while (mm <= 0) { mm += 12; yy--; }
+      const key = `${yy}-${String(mm).padStart(2,"0")}`;
+      const txs = transactions.filter(t => getMonthKey(t.date) === key);
+      if (txs.length === 0) continue;
+      monthsWithData++;
+      totalInc3 += txs.filter(t=>t.type==="income").reduce((s,t)=>s+toVND(t.amount,t.currency),0);
+      totalExp3 += txs.filter(t=>t.type==="expense").reduce((s,t)=>s+toVND(t.amount,t.currency),0);
+    }
+    if (monthsWithData === 0) return null;
+    const avgInc = totalInc3 / monthsWithData;
+    const avgExp = totalExp3 / monthsWithData;
+    const avgSurplus = avgInc - avgExp;
+    // Fixed costs (rent, bills, insurance)
+    const fixedCats = ["rent", "bills", "insurance"];
+    const fixedCost = monthTx.filter(t => t.type==="expense" && fixedCats.includes(t.category)).reduce((s,t)=>s+toVND(t.amount,t.currency),0);
+    // Recommendations
+    const rec = {
+      avgInc, avgExp, avgSurplus,
+      fixedCost,
+      // 50/30/20 rule adapted
+      idealNeeds: avgInc * 0.50,     // 50% needs
+      idealWants: avgInc * 0.30,     // 30% wants
+      idealSavings: avgInc * 0.20,   // 20% savings
+      // More aggressive if surplus allows
+      suggestedSavings: Math.max(avgSurplus * 0.5, avgInc * 0.10), // at least 10% of income, ideally 50% of surplus
+      // Emergency fund target (6 months expenses)
+      emergencyTarget: avgExp * 6,
+      // Monthly saving needed for goals
+      monthlyForGoals: 0,
+    };
+    // Calculate how much per month needed to hit savings goals on time
+    savings.forEach(sv => {
+      if (!sv.deadline) return;
+      const remaining = sv.target - sv.saved;
+      if (remaining <= 0) return;
+      const monthsLeft = Math.max(1, Math.ceil((new Date(sv.deadline) - new Date()) / (1000*60*60*24*30)));
+      rec.monthlyForGoals += toVND(remaining, sv.currency) / monthsLeft;
+    });
+    return rec;
+  }, [transactions, filterMonth, monthTx, savings, toVND]);
+  const Btn = ({ children, onClick, bg="linear-gradient(135deg,#6366f1,#8b5cf6)", color="#fff", style:s={} }) => (
+    <button onClick={onClick} style={{ width:"100%", padding:16, border:"none", borderRadius:14, cursor:"pointer", fontSize:16, fontWeight:700, fontFamily:F, color, background:bg, marginTop:8, ...s }}>{children}</button>
+  );
+  if (loading) return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:F, color:"#94a3b8", gap:12 }}>
+      <div style={{ fontSize:28, animation:"pulse 1.5s ease-in-out infinite" }}>💳</div>
+      <div>{t("loading")}</div>
+    </div>
+  );
+  return (
+    <div style={{ fontFamily:F, maxWidth:isDesktop?1100:isTablet?780:520, margin:"0 auto", padding:isDesktop?"20px 32px 40px":isTablet?"16px 24px 80px":"12px 16px 100px", minHeight:"100vh", background:"#fff", color:"#0f172a", zoom:isTablet&&!isDesktop?1.15:1 }}>
+      <style>{`
+        @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        *{box-sizing:border-box}
+        input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none}
+        ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:4px}
+      `}</style>
+      {/* Header */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10, paddingTop:8 }}>
+        <div>
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.8px" }}>{t("appTitle")} <span style={{ fontSize:9, color:"#cbd5e1", fontWeight:500 }}>v2.2</span></div>
+          <div style={{ fontSize:12, color:"#94a3b8", marginTop:2 }}>{getMonthName(filterMonth,lang)}</div>
+        </div>
+        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+          <select value={reportCur} onChange={e=>setReport(e.target.value)} style={{ border:"2px solid #e2e8f0", background:"#fafbfc", borderRadius:10, height:34, padding:"0 6px", cursor:"pointer", fontSize:11, fontWeight:700, fontFamily:F, color:"#7A5AF8", outline:"none", appearance:"none", textAlign:"center", width:55 }}>
+            {CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}
+          </select>
+          <button onClick={toggleLang} title="EN/VI" style={{ border:"2px solid #e2e8f0", background:"#fafbfc", borderRadius:10, height:34, padding:"0 10px", cursor:"pointer", fontSize:11, fontWeight:700, fontFamily:F, color:"#6366f1", display:"flex", alignItems:"center", justifyContent:"center" }}>{lang==="en"?"🇻🇳 VI":"🇺🇸 EN"}</button>
+          <button onClick={refreshRates} title={t("refreshRates")} style={{ border:"2px solid #e2e8f0", background:"#fafbfc", borderRadius:10, width:34, height:34, cursor:"pointer", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center" }}>🔄</button>
+          <select value={filterMonth} onChange={e=>setFilterMonth(e.target.value)} style={{ padding:"7px 10px", border:"2px solid #e2e8f0", borderRadius:10, fontSize:12, fontFamily:F, fontWeight:600, outline:"none", cursor:"pointer", background:"#fafbfc" }}>
+            {monthOptions.map(m=><option key={m} value={m}>{getMonthName(m,lang)}</option>)}
+          </select>
+        </div>
+      </div>
+      <RateTicker rates={rates} />
+      {/* Person filter */}
+      <div style={{ display:"flex", gap:4, marginBottom:14, overflowX:"auto", scrollbarWidth:"none" }}>
+        <button onClick={()=>setFilterPerson("all")} style={{ padding:"6px 12px", border:filterPerson==="all"?"2px solid #6366f1":"2px solid #e2e8f0", borderRadius:10, cursor:"pointer", fontSize:11, fontWeight:filterPerson==="all"?700:500, fontFamily:F, background:filterPerson==="all"?"#eef2ff":"#fafbfc", color:filterPerson==="all"?"#6366f1":"#94a3b8", minWidth:"fit-content" }}>
+          All
+        </button>
+        {people.map(p => (
+          <button key={p.id} onClick={()=>setFilterPerson(p.id)} style={{ padding:"6px 12px", border:filterPerson===p.id?"2px solid #6366f1":"2px solid #e2e8f0", borderRadius:10, cursor:"pointer", fontSize:11, fontWeight:filterPerson===p.id?700:500, fontFamily:F, background:filterPerson===p.id?"#eef2ff":"#fafbfc", color:filterPerson===p.id?"#6366f1":"#94a3b8", minWidth:"fit-content" }}>
+            {p.icon} {n(p.id)}
+          </button>
+        ))}
+      </div>
+      {/* Demo banner */}
+      {isDemo && (
+        <div style={{ background:"linear-gradient(135deg,#fef3c7,#fde68a)", borderRadius:14, padding:"10px 16px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", border:"1px solid #fbbf24" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:16 }}>🎭</span>
+            <div><div style={{ fontSize:12, fontWeight:700, color:"#92400e" }}>{t("demoData")}</div></div>
+          </div>
+          <button onClick={clearAll} style={{ padding:"5px 12px", border:"none", borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:700, fontFamily:F, background:"#92400e", color:"#fff" }}>{t("clearDemo")}</button>
+        </div>
+      )}
+      {!isDemo && transactions.length===0 && insurance.length===0 && (
+        <div style={{ background:"linear-gradient(135deg,#ede9fe,#e0e7ff)", borderRadius:14, padding:"10px 16px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", border:"1px solid #c7d2fe" }}>
+          <div style={{ fontSize:13, fontWeight:600, color:"#4338ca" }}>✨ {t("tryDemo")}</div>
+          <button onClick={loadDemo} style={{ padding:"5px 12px", border:"none", borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:700, fontFamily:F, background:"#4338ca", color:"#fff" }}>{t("loadDemo")}</button>
+        </div>
+      )}
+      <TabBar active={tab} onChange={setTab} t={t} />
+      {/* ═══ DASHBOARD ═══ */}
+      {tab === "dashboard" && (
+        <div>
+          {/* Opening + Closing Balance */}
+          <div style={{ display:isTablet?"flex":"block", gap:10, marginBottom:10 }}>
+            <div style={{ flex:1, background:"#eff6ff", borderRadius:16, padding:"12px 18px", marginBottom:isTablet?0:10, display:"flex", justifyContent:"space-between", alignItems:"center", border:"1px solid #bfdbfe" }}>
+              <span style={{ fontSize:12, fontWeight:600, color:"#3b82f6", fontFamily:F }}>📂 {lang==="vi"?"Số dư đầu kỳ":"Opening Balance"}</span>
+              <span style={{ fontSize:16, fontWeight:800, fontFamily:F, color:openingBalanceVND>=0?"#3b82f6":"#DC2626" }}>{formatVND(openingBalanceVND)}</span>
+            </div>
+            <div style={{ flex:1, background:"#eff6ff", borderRadius:16, padding:"12px 18px", marginBottom:isTablet?0:0, display:"flex", justifyContent:"space-between", alignItems:"center", border:"1px solid #bfdbfe" }}>
+              <span style={{ fontSize:12, fontWeight:600, color:"#3b82f6", fontFamily:F }}>📁 {lang==="vi"?"Số dư cuối kỳ":"Closing Balance"}</span>
+              <span style={{ fontSize:16, fontWeight:800, fontFamily:F, color:closingBalanceVND>=0?"#3b82f6":"#DC2626" }}>{formatVND(closingBalanceVND)}</span>
+            </div>
+          </div>
+          {/* Income / Expense / Balance */}
+          <div style={{ display:"flex", gap:10, marginBottom:10, flexWrap:"wrap" }}>
+            <StatCard label={t("income")} value={formatVND(totalIncVND)} color="#12B76A" bg="#f0fdf4" />
+            <StatCard label={t("expense")} value={formatVND(totalExpVND)} color="#F97066" bg="#fef2f2" />
+            {isTablet && <StatCard label={t("balance")} value={`${balanceVND>=0?"+":""}${formatVND(balanceVND)}`} color={balanceVND>=0?"#12B76A":"#F97066"} bg={balanceVND>=0?"#f0fdf4":"#fef2f2"} />}
+          </div>
+          {!isTablet && (
+          <div style={{ background:balanceVND>=0?"#f0fdf4":"#fef2f2", borderRadius:16, padding:"12px 18px", marginBottom:10, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <span style={{ fontSize:12, fontWeight:600, color:"#64748b", fontFamily:F }}>{t("balance")}</span>
+            <span style={{ fontSize:18, fontWeight:800, fontFamily:F, color:balanceVND>=0?"#12B76A":"#F97066" }}>{balanceVND>=0?"+":""}{formatVND(balanceVND)}</span>
+          </div>
+          )}
+          {/* Charts grid - 2 cols on desktop */}
+          <div style={{ display:isDesktop?"grid":"block", gridTemplateColumns:isDesktop?"1fr 1fr":"1fr", gap:16 }}>
+          {/* ── Smart Evaluation ── */}
+          {evaluation.length > 0 && (
+            <div style={{ background:"linear-gradient(135deg,#fefce8,#fef9c3)", borderRadius:16, padding:"16px 18px", marginBottom:16, border:"1px solid #fde68a" }}>
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>{t("monthlyAssess")}</div>
+              {evaluation.map((e, i) => (
+                <div key={i} style={{
+                  display:"flex", gap:8, alignItems:"flex-start", marginBottom:8, padding:"8px 12px", borderRadius:10,
+                  background: e.type==="good"?"#f0fdf4":e.type==="bad"?"#fef2f2":e.type==="warn"?"#fffbeb":"#f8fafc",
+                  fontSize:12, fontFamily:F, lineHeight:1.5,
+                }}>
+                  <span style={{ fontSize:14, flexShrink:0 }}>{e.icon}</span>
+                  <span style={{ color: e.type==="good"?"#16A34A":e.type==="bad"?"#DC2626":e.type==="warn"?"#D97706":"#475569", fontWeight:500 }}>{e.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* ── Monthly Trend Chart (SVG) ── */}
+          {monthlyTrend.some(m => m.inc > 0 || m.exp > 0) && (() => {
+            const maxVal = Math.max(...monthlyTrend.map(m => Math.max(m.inc, m.exp)), 1);
+            const chartH = 140, barW = 16, gap = 6;
+            return (
+              <div style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:16 }}>
+                <div style={{ fontSize:13, fontWeight:700, marginBottom:12 }}>{t("incExp6")}</div>
+                <svg viewBox={`0 0 ${monthlyTrend.length * (barW*2+gap+20)} ${chartH+28}`} style={{ width:"100%", height:"auto" }}>
+                  {monthlyTrend.map((m, i) => {
+                    const x = i * (barW*2+gap+20) + 10;
+                    const hInc = maxVal > 0 ? (m.inc / maxVal) * chartH : 0;
+                    const hExp = maxVal > 0 ? (m.exp / maxVal) * chartH : 0;
+                    return (
+                      <g key={i}>
+                        <rect x={x} y={chartH - hInc} width={barW} height={Math.max(hInc, 1)} rx={3} fill="#12B76A" />
+                        <rect x={x+barW+gap} y={chartH - hExp} width={barW} height={Math.max(hExp, 1)} rx={3} fill="#F97066" />
+                        <text x={x+barW+gap/2} y={chartH+16} textAnchor="middle" fill="#94a3b8" fontSize="10" fontFamily={F}>{m.label}</text>
+                      </g>
+                    );
+                  })}
+                </svg>
+                <div style={{ display:"flex", gap:16, justifyContent:"center", marginTop:8 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:"#64748b" }}><div style={{ width:8, height:8, borderRadius:2, background:"#12B76A" }} /> {t("income")}</div>
+                  <div style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:"#64748b" }}><div style={{ width:8, height:8, borderRadius:2, background:"#F97066" }} /> {t("expense")}</div>
+                </div>
+              </div>
+            );
+          })()}
+          {/* ── Category Donut (SVG) ── */}
+          {catPieData.length > 0 && (() => {
+            const total = catPieData.reduce((s, d) => s + d.value, 0);
+            const r = 55, ir = 30, cx = 65, cy = 65;
+            let cumAngle = -90;
+            const arcs = catPieData.map(d => {
+              const angle = total > 0 ? (d.value / total) * 360 : 0;
+              const startAngle = cumAngle;
+              cumAngle += angle;
+              const endAngle = cumAngle;
+              const startRad = (startAngle * Math.PI) / 180;
+              const endRad = (endAngle * Math.PI) / 180;
+              const largeArc = angle > 180 ? 1 : 0;
+              const x1 = cx + r * Math.cos(startRad), y1 = cy + r * Math.sin(startRad);
+              const x2 = cx + r * Math.cos(endRad), y2 = cy + r * Math.sin(endRad);
+              const ix1 = cx + ir * Math.cos(startRad), iy1 = cy + ir * Math.sin(startRad);
+              const ix2 = cx + ir * Math.cos(endRad), iy2 = cy + ir * Math.sin(endRad);
+              const path = `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${ir} ${ir} 0 ${largeArc} 0 ${ix1} ${iy1} Z`;
+              return { ...d, path };
+            });
+            return (
+              <div style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:16 }}>
+                <div style={{ fontSize:13, fontWeight:700, marginBottom:8 }}>{t("expByCat")}</div>
+                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                  <svg viewBox="0 0 130 130" style={{ width:130, height:130, flexShrink:0 }}>
+                    {arcs.map((a, i) => <path key={i} d={a.path} fill={a.color} />)}
+                  </svg>
+                  <div style={{ flex:1 }}>
+                    {catPieData.slice(0, 6).map((d, i) => {
+                      const pct = totalExpVND > 0 ? (d.value / totalExpVND * 100).toFixed(0) : 0;
+                      return (
+                        <div key={i} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
+                          <div style={{ width:8, height:8, borderRadius:2, background:d.color, flexShrink:0 }} />
+                          <div style={{ fontSize:11, fontFamily:F, color:"#475569", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{d.name}</div>
+                          <div style={{ fontSize:11, fontFamily:F, fontWeight:700, color:"#0f172a", flexShrink:0 }}>{pct}%</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+          {/* ── By Person ── */}
+          {filterPerson === "all" && Object.keys(expByPerson).length > 1 && (
+            <div style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:16 }}>
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>{t("expByPerson")}</div>
+              {Object.entries(expByPerson).sort((a,b)=>b[1]-a[1]).map(([pid, vnd]) => {
+                const p = people.find(x=>x.id===pid);
+                const pct = totalExpVND>0?(vnd/totalExpVND*100):0;
+                return (
+                  <div key={pid} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                    <span style={{ fontSize:18 }}>{p?.icon||"👤"}</span>
+                    <div style={{ flex:1 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, fontWeight:600, marginBottom:3 }}>
+                        <span>{n(pid)||pid}</span><span>{formatVND(vnd)} ({pct.toFixed(0)}%)</span>
+                      </div>
+                      <div style={{ height:6, background:"#e2e8f0", borderRadius:3, overflow:"hidden" }}>
+                        <div style={{ height:"100%", borderRadius:3, width:`${pct}%`, background:pid==="me"?"#818cf8":"#f472b6", transition:"width 0.3s" }} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* ── Wallet Balances ── */}
+          <div style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:16 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+              <div style={{ fontSize:13, fontWeight:700 }}>{t("wallets")}</div>
+              <div style={{ fontSize:16, fontWeight:800, fontFamily:F }}>{formatVND(totalNetWorthVND)}</div>
+            </div>
+            {WALLETS.map(w => {
+              const balances = walletCurrentBalances[w.id] || {};
+              const currencies = Object.entries(balances).filter(([,v]) => v !== 0);
+              if (currencies.length === 0 && !walletBalances[w.id]) return null;
+              const walletTotalVND = currencies.reduce((s, [cur, amt]) => s + toVND(amt, cur), 0);
+              const hasDebt = currencies.some(([, amt]) => amt < 0);
+              return (
+                <div key={w.id} style={{ background:"#fff", borderRadius:14, padding:"14px 16px", marginBottom:8, border: hasDebt?"1px solid #fecaca":"1px solid #f1f5f9" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <span style={{ fontSize:20 }}>{w.icon}</span>
+                      <span style={{ fontSize:13, fontWeight:700, fontFamily:F }}>{n(w.id==="crypto"?"cryptoW":w.id)}</span>
+                    </div>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <div style={{ fontSize:14, fontWeight:800, fontFamily:F, color:walletTotalVND>=0?"#0f172a":"#F97066" }}>{formatVND(walletTotalVND)}</div>
+                      <button onClick={()=>setShowEditWallet(w.id)} style={{ border:"none", background:"#f1f5f9", borderRadius:6, width:24, height:24, cursor:"pointer", fontSize:11, display:"flex", alignItems:"center", justifyContent:"center", color:"#94a3b8" }}>✎</button>
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                    {currencies.map(([cur, amt]) => (
+                      <div key={cur} style={{ fontSize:11, fontFamily:F, borderRadius:8, padding:"4px 10px", background:amt<0?"#fef2f2":"#f0fdf4", color:amt<0?"#DC2626":"#16A34A", fontWeight:600 }}>
+                        {cur}: {formatCurrency(amt, cur)}
+                        {cur!==reportCur && <span style={{ color:"#94a3b8", fontWeight:400 }}> ≈{formatVND(toVND(amt,cur))}</span>}
+                      </div>
+                    ))}
+                    {currencies.length===0 && <div style={{ fontSize:11, color:"#cbd5e1", fontFamily:F }}>{t("noBalance")}</div>}
+                  </div>
+                  {hasDebt && <div style={{ fontSize:10, color:"#DC2626", fontWeight:600, marginTop:6, fontFamily:F }}>{t("inDebt")}</div>}
+                </div>
+              );
+            })}
+          </div>
+          </div>{/* end charts grid */}
+          {/* Bottom sections grid */}
+          <div style={{ display:isDesktop?"grid":"block", gridTemplateColumns:isDesktop?"1fr 1fr":"1fr", gap:16 }}>
+          {/* ── Recent Transactions ── */}
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>{t("recentTx")}</div>
+            {monthTx.slice(0, 5).map(tx => <TxItem key={tx.id} tx={tx} onDelete={id=>saveTx(transactions.filter(t=>t.id!==id))} onEdit={editTransaction} toVND={toVND} n={n} formatVND={formatVND} reportCur={reportCur} />)}
+            {monthTx.length===0 && <div style={{ fontSize:12, color:"#94a3b8", textAlign:"center", padding:20 }}>{t("noTx")}</div>}
+          </div>
+          {/* ── Insurance summary ── */}
+          {insurance.length > 0 && (
+            <div style={{ background:"linear-gradient(135deg,#ecfeff,#cffafe)", borderRadius:16, padding:"16px 18px", marginBottom:16, border:"1px solid #a5f3fc" }}>
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:8 }}>{t("insSection")}</div>
+              <div style={{ display:"flex", gap:10, marginBottom:8 }}>
+                <div><div style={{ fontSize:10, color:"#64748b" }}>{	("nextPayment")}</div><div style={{ fontSize:16, fontWeight:800 }}>{formatVND(nextPaymentInsVND)}</div></div>
+                <div><div style={{ fontSize:10, color:"#64748b" }}>{t("feeYear")}</div><div style={{ fontSize:16, fontWeight:800 }}>{formatVND(yearlyInsVND)}</div></div>
+              </div>
+              {upcomingIns.length>0 && <div style={{ fontSize:11, color:"#0e7490" }}>{t("nextDue")} <b>{upcomingIns[0].policyName}</b> {new Date(upcomingIns[0].nextDue).toLocaleDateString("en-US")}</div>}
+            </div>
+          )}
+          {/* ── Invest summary ── */}
+          {investments.length > 0 && (
+            <div style={{ background:"linear-gradient(135deg,#ede9fe,#e0e7ff)", borderRadius:16, padding:"16px 18px" }}>
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:8 }}>{t("investment")}</div>
+              <div style={{ fontSize:20, fontWeight:800 }}>{formatVND(totalInvValVND)}</div>
+              <div style={{ fontSize:12, fontWeight:600, marginTop:4, color:totalInvValVND>=totalInvCostVND?"#12B76A":"#F97066" }}>
+                {totalInvValVND>=totalInvCostVND?"▲":"▼"} {formatVND(Math.abs(totalInvValVND-totalInvCostVND))}
+                {totalInvCostVND>0&&` (${((totalInvValVND-totalInvCostVND)/totalInvCostVND*100).toFixed(1)}%)`}
+              </div>
+            </div>
+          )}
+          </div>{/* end bottom sections grid */}
+        </div>
+      )}
+      {/* ═══ TRANSACTIONS ═══ */}
+      {tab === "transactions" && (
+        <div>
+          <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+            <button onClick={()=>{setTxForm(f=>({...f,type:"expense"}));setShowAddTx(true)}} style={{ flex:1, padding:12, border:"none", borderRadius:14, cursor:"pointer", background:"linear-gradient(135deg,#fef2f2,#fee2e2)", color:"#F97066", fontWeight:700, fontSize:13, fontFamily:F }}>{t("addExpense")}</button>
+            <button onClick={()=>{setTxForm(f=>({...f,type:"income"}));setShowAddTx(true)}} style={{ flex:1, padding:12, border:"none", borderRadius:14, cursor:"pointer", background:"linear-gradient(135deg,#f0fdf4,#dcfce7)", color:"#12B76A", fontWeight:700, fontSize:13, fontFamily:F }}>{t("addIncome")}</button>
+          </div>
+          {monthTx.length===0 ? (
+            <div style={{ textAlign:"center", padding:40, color:"#94a3b8" }}><div style={{ fontSize:36, marginBottom:10 }}>📝</div><div style={{ fontSize:13 }}>{t("noTx")}</div></div>
+          ) : monthTx.map(tx => <TxItem key={tx.id} tx={tx} onDelete={id=>saveTx(transactions.filter(t=>t.id!==id))} onEdit={editTransaction} toVND={toVND} n={n} formatVND={formatVND} reportCur={reportCur} />)}
+        </div>
+      )}
+      {/* ═══ BUDGET PLANNER ═══ */}
+      {tab === "budget" && (
+        <div>
+          {/* Period selector */}
+          <div style={{ display:"flex", gap:4, marginBottom:14 }}>
+            {[{v:1,l:"pMonth"},{v:3,l:"pQuarter"},{v:6,l:"pHalf"},{v:12,l:"pYear"}].map(p => (
+              <button key={p.v} onClick={()=>setBudgetPeriod(p.v)} style={{
+                flex:1, padding:"8px 4px", border:budgetPeriod===p.v?"2px solid #6366f1":"2px solid #e2e8f0",
+                borderRadius:10, cursor:"pointer", fontSize:12, fontWeight:budgetPeriod===p.v?700:500, fontFamily:F,
+                background:budgetPeriod===p.v?"#eef2ff":"#fafbfc", color:budgetPeriod===p.v?"#6366f1":"#94a3b8",
+              }}>{t(p.l)}</button>
+            ))}
+          </div>
+          {/* ── Flow Summary ── */}
+          {(() => {
+            const pf = budgetPeriod;
+            const [cy,cm] = filterMonth.split("-").map(Number);
+            // Opening balance: initial wallets + all tx before this period
+            const openingBalance = (() => {
+              let bal = 0;
+              // Initial wallet balances
+              Object.values(walletBalances).forEach(currencies => {
+                Object.entries(currencies).forEach(([cur, amt]) => { bal += toVND(amt, cur); });
+              });
+              // All transactions before this period
+              transactions.forEach(tx => {
+                const txMonth = getMonthKey(tx.date, "en");
+                if (txMonth < filterMonth) {
+                  const v = toVND(tx.amount, tx.currency);
+                  bal += tx.type === "income" ? v : -v;
+                }
+              });
+              return bal;
+            })();
+            // Period income: recurring × pf, one-time × 1
+            const periodIncVND = (budgetPlan.incomeItems||[]).reduce((s, i) => {
+              const v = toVND(i.amount, i.currency);
+              return s + (i.recurring !== false ? v * pf : v);
+            }, 0);
+            // Period fixed: recurring × pf, one-time × 1
+            const periodFixedBaseVND = (budgetPlan.fixedItems||[]).reduce((s, i) => {
+              const v = toVND(i.amount, i.currency);
+              return s + (i.recurring !== false ? v * pf : v);
+            }, 0);
+            // Insurance due in period
+            const periodInsVND = (() => {
+              let total = 0;
+              const [cy,cm] = filterMonth.split("-").map(Number);
+              insurance.forEach(ins => {
+                if (!ins.nextDue) return;
+                const dueDate = new Date(ins.nextDue);
+                for (let i = 0; i < pf; i++) {
+                  let mm = cm + i, yy = cy;
+                  while (mm > 12) { mm -= 12; yy++; }
+                  if (dueDate.getFullYear() === yy && dueDate.getMonth() + 1 === mm) {
+                    total += toVND(ins.premium, ins.currency);
+                  }
+                }
+              });
+              return total;
+            })();
+            const periodTotalFixedVND = periodFixedBaseVND + periodInsVND;
+            // Loan payments in period
+            const periodLoanPayVND = loans.reduce((s, l) => {
+              const inst = l.installment || 0;
+              if (inst <= 0) return s;
+              const monthly = l.payFreq==="quarterly" ? inst/3 : inst;
+              return s + toVND(monthly * pf, l.currency);
+            }, 0);
+            // Savings contributions in period (use explicit contribution if set, else auto-calc)
+            const periodSavingsVND = savings.filter(sv=>sv.saved<sv.target).reduce((s, sv) => {
+              const contrib = sv.contribAmount || 0;
+              const freq = sv.contribFreq || "monthly";
+              let monthly;
+              if (contrib > 0) {
+                monthly = freq==="quarterly" ? contrib/3 : freq==="yearly" ? contrib/12 : contrib;
+              } else {
+                const remaining = sv.target - sv.saved;
+                const daysLeft = sv.deadline ? Math.max(1, Math.ceil((new Date(sv.deadline) - new Date()) / (1000*60*60*24))) : 365;
+                monthly = remaining / Math.max(1, Math.ceil(daysLeft / 30));
+              }
+              return s + toVND(monthly * pf, sv.currency);
+            }, 0);
+            // Lending expected repayments (income from borrowers with monthly schedule)
+            const periodLendingIncVND = (() => {
+              let total = 0;
+              const loanMap2 = {};
+              const loanCur2 = {};
+              transactions.forEach(tx => {
+                if (tx.category==="lending"&&tx.type==="expense"&&tx.note) {
+                  const nm=tx.note.trim();
+                  loanMap2[nm]=(loanMap2[nm]||0)+toVND(tx.amount,tx.currency);
+                  if (!loanCur2[nm]) loanCur2[nm] = tx.currency;
+                }
+                if (tx.category==="loan_repay"&&tx.type==="income"&&tx.note) {
+                  const nm=tx.note.trim();
+                  loanMap2[nm]=(loanMap2[nm]||0)-toVND(tx.amount,tx.currency);
+                }
+              });
+              Object.entries(loanMap2).forEach(([nm, outstanding]) => {
+                if (outstanding <= 0) return;
+                const lr2 = loanRates[nm];
+                const repayType = typeof lr2==="object"?(lr2?.repayType||"flexible"):"flexible";
+                const monthlyRepay = typeof lr2==="object"?(lr2?.monthlyRepay||0):0;
+                if (repayType==="monthly" && monthlyRepay > 0) {
+                  // Convert monthlyRepay from original currency to report currency
+                  const cur = loanCur2[nm] || "VND";
+                  const monthlyInReport = toVND(monthlyRepay, cur);
+                  const rate2 = typeof lr2==="object"?(lr2?.rate||0):0;
+                  const totalOwed2 = outstanding + (rate2 > 0 ? outstanding * (Math.pow(1 + rate2/100, pf) - 1) : 0);
+                  total += Math.min(monthlyInReport * pf, totalOwed2);
+                }
+              });
+              return total;
+            })();
+            const periodAvailVND = periodIncVND + periodLendingIncVND - periodTotalFixedVND - periodLoanPayVND - periodSavingsVND;
+            const periodDiscVND = budgets.filter(b=>b.month===filterMonth).reduce((s,b) => {
+              const limVND = toVND(b.limit, b.currency);
+              return s + (b.recurring !== false ? limVND * pf : limVND);
+            }, 0);
+            const periodUnallocVND = periodAvailVND - periodDiscVND;
+            const closingBalance = openingBalance + periodIncVND + periodLendingIncVND - periodTotalFixedVND - periodLoanPayVND - periodSavingsVND - periodDiscVND;
+            // Actual spending in period
+            const periodMonths = [];
+            for (let i = 0; i < pf; i++) {
+              let mm2 = cm + i, yy2 = cy;
+              while (mm2 > 12) { mm2 -= 12; yy2++; }
+              periodMonths.push(`${yy2}-${String(mm2).padStart(2,"0")}`);
+            }
+            const periodTx = transactions.filter(tx => periodMonths.includes(getMonthKey(tx.date, lang)));
+            const actualIncVND = periodTx.filter(tx=>tx.type==="income").reduce((s,tx)=>s+toVND(tx.amount,tx.currency),0);
+            const actualFixedVND = periodTx.filter(tx=>tx.type==="expense"&&["rent","bills","insurance","education","family_exp"].includes(tx.category)).reduce((s,tx)=>s+toVND(tx.amount,tx.currency),0);
+            const actualDiscVND = periodTx.filter(tx=>tx.type==="expense"&&!["rent","bills","insurance","education","family_exp","lending","charity"].includes(tx.category)).reduce((s,tx)=>s+toVND(tx.amount,tx.currency),0);
+            return (<>
+          <div style={{ background:"linear-gradient(135deg,#f0fdf4,#ecfeff)", borderRadius:16, padding:"16px 18px", marginBottom:16, border:"1px solid #bbf7d0" }}>
+            <div style={{ fontSize:13, fontWeight:700, marginBottom:12 }}>📐 {t("forecast")} ({pf === 1 ? t("pMonth") : pf === 3 ? t("pQuarter") : pf === 6 ? t("pHalf") : t("pYear")})</div>
+            {[
+              { label:lang==="vi"?"Số dư đầu kỳ":"Opening Balance", value:openingBalance, color:openingBalance>=0?"#0EA5E9":"#DC2626", icon:"📂", bold:true },
+              { label:t("estIncome"), value:periodIncVND, color:"#12B76A", icon:"💰" },
+              periodLendingIncVND > 0 ? { label:lang==="vi"?"Thu nợ cho vay":"Lending Repay", value:periodLendingIncVND, color:"#F59E0B", icon:"🤝" } : null,
+              { label:t("fixedCosts"), value:-periodFixedBaseVND, color:"#F97066", icon:"📌" },
+              periodInsVND > 0 ? { label:lang==="vi"?"Bảo hiểm":"Insurance", value:-periodInsVND, color:"#F97066", icon:"🛡️" } : null,
+              periodLoanPayVND > 0 ? { label:lang==="vi"?"Trả nợ vay":"Loan Payments", value:-periodLoanPayVND, color:"#DC2626", icon:"🏦" } : null,
+              periodSavingsVND > 0 ? { label:lang==="vi"?"Tiết kiệm":"Savings", value:-periodSavingsVND, color:"#7A5AF8", icon:"🎯" } : null,
+              { label:lang==="vi"?"Còn lại chi tiêu":"Spendable", value:periodAvailVND, color:periodAvailVND>=0?"#7A5AF8":"#DC2626", icon:"✂️", bold:true },
+              { label:t("discBudget"), value:-periodDiscVND, color:"#F79009", icon:"🛒" },
+              { label:t("unallocated"), value:periodUnallocVND, color:periodUnallocVND>=0?"#12B76A":"#DC2626", icon:periodUnallocVND>=0?"✅":"⚠️", bold:true },
+              { label:lang==="vi"?"Số dư cuối kỳ (dự kiến)":"Closing Balance (est.)", value:closingBalance, color:closingBalance>=0?"#0EA5E9":"#DC2626", icon:"📁", bold:true },
+            ].filter(Boolean).map((r, i) => (
+              <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", background:r.bold?"#fff":"transparent", borderRadius:10, marginBottom:r.bold?6:2 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, fontSize:12, fontFamily:F }}>
+                  <span>{r.icon}</span>
+                  <span style={{ fontWeight:r.bold?700:500, color:"#475569" }}>{r.label}</span>
+                </div>
+                <span style={{ fontSize:r.bold?15:13, fontWeight:r.bold?800:600, fontFamily:F, color:r.color }}>{r.value>=0?"+":""}{formatVND(r.value)}</span>
+              </div>
+            ))}
+          </div>
+          {/* ── Actual vs Forecast ── */}
+          <div style={{ background:"linear-gradient(135deg,#fefce8,#fef9c3)", borderRadius:16, padding:"16px 18px", marginBottom:16, border:"1px solid #fde68a" }}>
+            <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>📊 {t("actualVsForecast")}</div>
+            {[
+              { label:t("income"), planned:periodIncVND, actual:actualIncVND },
+              { label:t("fixedCosts"), planned:periodTotalFixedVND, actual:actualFixedVND },
+              { label:t("discBudget"), planned:periodDiscVND, actual:actualDiscVND },
+            ].map((r, i) => {
+              const diff = r.actual - r.planned;
+              const isGood = i === 0 ? diff >= 0 : diff <= 0;
+              return (
+                <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 10px", background:"#fff", borderRadius:8, marginBottom:4 }}>
+                  <span style={{ fontSize:12, fontWeight:600, color:"#475569" }}>{r.label}</span>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:11, color:"#94a3b8" }}>{t("plan")} {formatVND(r.planned)}</div>
+                    <div style={{ fontSize:12, fontWeight:700, color: isGood?"#16A34A":"#DC2626" }}>{t("actualLabel")}: {formatVND(r.actual)}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          </>);
+          })()}
+          {/* Income + Fixed grid on desktop */}
+          <div style={{ display:isDesktop?"grid":"block", gridTemplateColumns:isDesktop?"1fr 1fr":"1fr", gap:12 }}>
+          {/* ── Estimated Income ── */}
+          <div style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:12 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <div style={{ fontSize:13, fontWeight:700 }}>{t("estIncome")}</div>
+              <button onClick={()=>{setPlanItemForm({name:"",amount:"",currency:"USDT",recurring:true});setShowAddPlanItem("income")}} style={{ border:"none", background:"#eef2ff", color:"#6366f1", borderRadius:8, padding:"4px 12px", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:F }}>{t("addItem")}</button>
+            </div>
+            {(budgetPlan.incomeItems||[]).map(item => (
+              <div key={item.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #f1f5f9" }}>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:600, fontFamily:F }}>{item.name} <span style={{ fontSize:9, color:"#94a3b8" }}>{item.recurring!==false?"🔄":"1️⃣"}</span></div>
+                  <div style={{ fontSize:11, color:"#94a3b8" }}>{formatCurrency(item.amount, item.currency)}{item.recurring!==false?`/${lang==="vi"?"tháng":"mo"}`:""} {item.currency !== reportCur && `≈ ${formatVND(toVND(item.amount, item.currency))}`}</div>
+                </div>
+                <button onClick={()=>removePlanItem("income",item.id)} style={{ border:"none", background:"none", color:"#cbd5e1", fontSize:12, cursor:"pointer" }}>✕</button>
+              </div>
+            ))}
+            {(budgetPlan.incomeItems||[]).length===0 && <div style={{ fontSize:12, color:"#cbd5e1", textAlign:"center", padding:12 }}>{t("noIncomeItems")}</div>}
+            <div style={{ fontSize:12, fontWeight:700, color:"#12B76A", textAlign:"right", marginTop:8, fontFamily:F }}>{t("total")}: {formatVND(planIncomeVND)}</div>
+          </div>
+          {/* ── Fixed Costs ── */}
+          <div style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:12 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <div style={{ fontSize:13, fontWeight:700 }}>{t("fixedCosts")}</div>
+              <button onClick={()=>{setPlanItemForm({name:"",amount:"",currency:"VND",recurring:true});setShowAddPlanItem("fixed")}} style={{ border:"none", background:"#eef2ff", color:"#6366f1", borderRadius:8, padding:"4px 12px", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:F }}>{t("addItem")}</button>
+            </div>
+            {(budgetPlan.fixedItems||[]).map(item => (
+              <div key={item.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #f1f5f9" }}>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:600, fontFamily:F }}>{item.name} <span style={{ fontSize:9, color:"#94a3b8" }}>{item.recurring!==false?"🔄":"1️⃣"}</span></div>
+                  <div style={{ fontSize:11, color:"#94a3b8" }}>{formatCurrency(item.amount, item.currency)}{item.recurring!==false?`/${lang==="vi"?"tháng":"mo"}`:""} {item.currency !== reportCur && `≈ ${formatVND(toVND(item.amount, item.currency))}`}</div>
+                </div>
+                <button onClick={()=>removePlanItem("fixed",item.id)} style={{ border:"none", background:"none", color:"#cbd5e1", fontSize:12, cursor:"pointer" }}>✕</button>
+              </div>
+            ))}
+            {/* Insurance due this month */}
+            {insurance.filter(ins => ins.nextDue && getMonthKey(ins.nextDue) === filterMonth).map(ins => (
+              <div key={ins.id} style={{ display:"flex", justifyContent:"space-between", padding:"8px 0", borderBottom:"1px solid #f1f5f9" }}>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:600, fontFamily:F, color:"#DC2626" }}>🛡️ {ins.policyName}</div>
+                  <div style={{ fontSize:10, color:"#94a3b8" }}>{ins.provider} · {lang==="vi"?"đến hạn":"due"} {new Date(ins.nextDue).toLocaleDateString("en-US")}</div>
+                </div>
+                <div style={{ fontSize:12, fontWeight:600, fontFamily:F, color:"#DC2626" }}>{formatVND(toVND(ins.premium, ins.currency))}</div>
+              </div>
+            ))}
+            {monthlyInsVND > 0 && insurance.filter(ins => ins.nextDue && getMonthKey(ins.nextDue) === filterMonth).length === 0 && (
+              <div style={{ display:"flex", justifyContent:"space-between", padding:"8px 0", borderBottom:"1px solid #f1f5f9" }}>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:600, fontFamily:F, color:"#64748b" }}>🛡️ {t("insAuto")}</div>
+                  <div style={{ fontSize:10, color:"#94a3b8" }}>{t("insAutoSub")}</div>
+                </div>
+                <div style={{ fontSize:12, fontWeight:600, fontFamily:F, color:"#64748b" }}>{formatVND(monthlyInsVND)}</div>
+              </div>
+            )}
+            {(budgetPlan.fixedItems||[]).length===0 && monthlyInsVND===0 && <div style={{ fontSize:12, color:"#cbd5e1", textAlign:"center", padding:12 }}>{t("noFixedCosts")}</div>}
+            <div style={{ fontSize:12, fontWeight:700, color:"#F97066", textAlign:"right", marginTop:8, fontFamily:F }}>{t("total")}: {formatVND(planTotalFixedVND)}</div>
+          </div>
+          </div>{/* end income/fixed grid */}
+          {/* ── Discretionary Budgets ── */}
+          <div style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:12 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <div style={{ fontSize:13, fontWeight:700 }}>{t("discBudget")}</div>
+              <button onClick={()=>setShowAddBudget(true)} style={{ border:"none", background:"#eef2ff", color:"#6366f1", borderRadius:8, padding:"4px 12px", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:F }}>{t("addItem")}</button>
+            </div>
+            {budgets.filter(b=>b.month===filterMonth).map(b => {
+              const cat = CATEGORIES.expense.find(c=>c.id===b.category);
+              const baseLimVND = toVND(b.limit, b.currency);
+              const periodLimVND = b.recurring !== false ? baseLimVND * budgetPeriod : baseLimVND;
+              // Actual for period
+              const periodActual = (() => {
+                const [cy2,cm2] = filterMonth.split("-").map(Number);
+                let total = 0;
+                for (let i = 0; i < budgetPeriod; i++) {
+                  let mm = cm2+i, yy = cy2;
+                  while(mm>12){mm-=12;yy++;}
+                  const mk = `${yy}-${String(mm).padStart(2,"0")}`;
+                  transactions.filter(tx=>tx.type==="expense"&&tx.category===b.category&&getMonthKey(tx.date)===mk).forEach(tx=>{total+=toVND(tx.amount,tx.currency);});
+                }
+                return total;
+              })();
+              const pct = Math.min((periodActual/periodLimVND)*100,100);
+              const over = periodActual > periodLimVND;
+              return (
+                <div key={b.id} style={{ marginBottom:10 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <span style={{ fontSize:16 }}>{cat?.icon||"📦"}</span>
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:700 }}>
+                          {n(b.category)||b.category}
+                          <span style={{ fontSize:9, color:"#94a3b8", marginLeft:4 }}>{b.recurring!==false?"🔄":"1️⃣"}</span>
+                        </div>
+                        <div style={{ fontSize:10, color:"#94a3b8" }}>
+                          {t("actualLabel")} {formatVND(periodActual)} / {t("budgetLabel")} {formatVND(periodLimVND)}
+                          {budgetPeriod>1 && b.recurring!==false && <span style={{ color:"#cbd5e1" }}> ({formatVND(baseLimVND)}/mo ×{budgetPeriod})</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                      <span style={{ fontSize:12, fontWeight:800, color:over?"#F97066":"#12B76A" }}>{pct.toFixed(0)}%</span>
+                      <button onClick={()=>saveBg(budgets.filter(x=>x.id!==b.id))} style={{ border:"none", background:"none", color:"#cbd5e1", fontSize:10, cursor:"pointer" }}>✕</button>
+                    </div>
+                  </div>
+                  <div style={{ height:5, background:"#e2e8f0", borderRadius:3, overflow:"hidden" }}>
+                    <div style={{ height:"100%", borderRadius:3, width:`${pct}%`, background:over?"#F97066":pct>80?"#FDB022":"#12B76A", transition:"width 0.3s" }} />
+                  </div>
+                </div>
+              );
+            })}
+            {budgets.filter(b=>b.month===filterMonth).length===0 && <div style={{ fontSize:12, color:"#cbd5e1", textAlign:"center", padding:12 }}>{t("noDiscBudget")}</div>}
+          </div>
+          {/* ── Loan Payments ── */}
+          {loans.length > 0 && (
+            <div style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:12 }}>
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>🏦 {lang==="vi"?"Trả nợ vay":"Loan Payments"}</div>
+              {loans.filter(l => (l.paidAmount||0) < l.amount + (l.amount * (l.rateType==="year"?(l.rate||0)/100/12:(l.rate||0)/100) * (l.termMonths||1))).map(loan => {
+                const inst = loan.installment || 0;
+                const freqLabel = loan.payFreq==="quarterly" ? (lang==="vi"?"quý":"qtr") : (lang==="vi"?"tháng":"mo");
+                const monthlyEquiv = loan.payFreq==="quarterly" ? inst / 3 : inst;
+                return (
+                  <div key={loan.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #f1f5f9" }}>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:600, fontFamily:F }}>{loan.lender} <span style={{ fontSize:9, color:loan.type==="bank"?"#2563EB":"#F59E0B" }}>{loan.type==="bank"?"🏦":"👤"}</span></div>
+                      <div style={{ fontSize:11, color:"#94a3b8" }}>{inst > 0 ? `${formatCurrency(inst, loan.currency)}/${freqLabel}` : loan.note}</div>
+                    </div>
+                    <div style={{ fontSize:12, fontWeight:600, fontFamily:F, color:"#DC2626" }}>{formatVND(toVND(monthlyEquiv, loan.currency))}/{lang==="vi"?"tháng":"mo"}</div>
+                  </div>
+                );
+              })}
+              <div style={{ fontSize:12, fontWeight:700, color:"#DC2626", textAlign:"right", marginTop:8, fontFamily:F }}>
+                {t("total")}: {formatVND(loans.reduce((s, l) => {
+                  const inst = l.installment || 0;
+                  return s + toVND(l.payFreq==="quarterly" ? inst/3 : inst, l.currency);
+                }, 0))}/{lang==="vi"?"tháng":"mo"}
+              </div>
+            </div>
+          )}
+          {/* ── Savings Goals ── */}
+          {savings.length > 0 && (
+            <div style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:12 }}>
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>🎯 {t("savings")}</div>
+              {savings.filter(sv => sv.saved < sv.target).map(sv => {
+                const remaining = sv.target - sv.saved;
+                const contrib = sv.contribAmount || 0;
+                const freq = sv.contribFreq || "monthly";
+                const freqLabel = freq==="quarterly"?(lang==="vi"?"quý":"qtr"):freq==="yearly"?(lang==="vi"?"năm":"yr"):(lang==="vi"?"tháng":"mo");
+                let monthly;
+                if (contrib > 0) {
+                  monthly = freq==="quarterly" ? contrib/3 : freq==="yearly" ? contrib/12 : contrib;
+                } else {
+                  const daysLeft = sv.deadline ? Math.max(1, Math.ceil((new Date(sv.deadline) - new Date()) / (1000*60*60*24))) : 365;
+                  monthly = remaining / Math.max(1, Math.ceil(daysLeft / 30));
+                }
+                const monthsToGoal = monthly > 0 ? Math.ceil(remaining / monthly) : 0;
+                return (
+                  <div key={sv.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #f1f5f9" }}>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:600, fontFamily:F }}>{sv.name}</div>
+                      <div style={{ fontSize:11, color:"#94a3b8" }}>
+                        {contrib > 0
+                          ? `${formatCurrency(contrib, sv.currency)}/${freqLabel}`
+                          : `${lang==="vi"?"Tự tính":"Auto"}`
+                        }
+                        {monthsToGoal > 0 && ` · ≈${monthsToGoal} ${lang==="vi"?"tháng":"mo"}`}
+                      </div>
+                    </div>
+                    <div style={{ fontSize:12, fontWeight:600, fontFamily:F, color:"#7A5AF8" }}>{formatVND(toVND(monthly, sv.currency))}/{lang==="vi"?"tháng":"mo"}</div>
+                  </div>
+                );
+              })}
+              <div style={{ fontSize:12, fontWeight:700, color:"#7A5AF8", textAlign:"right", marginTop:8, fontFamily:F }}>
+                {t("total")}: {formatVND(savings.filter(sv=>sv.saved<sv.target).reduce((s, sv) => {
+                  const contrib = sv.contribAmount || 0;
+                  const freq = sv.contribFreq || "monthly";
+                  let monthly;
+                  if (contrib > 0) {
+                    monthly = freq==="quarterly" ? contrib/3 : freq==="yearly" ? contrib/12 : contrib;
+                  } else {
+                    const remaining = sv.target - sv.saved;
+                    const daysLeft = sv.deadline ? Math.max(1, Math.ceil((new Date(sv.deadline) - new Date()) / (1000*60*60*24))) : 365;
+                    monthly = remaining / Math.max(1, Math.ceil(daysLeft / 30));
+                  }
+                  return s + toVND(monthly, sv.currency);
+                }, 0))}/{lang==="vi"?"tháng":"mo"}
+              </div>
+            </div>
+          )}
+          {/* ── Financial Position Summary ── */}
+          {(() => {
+            const lendingAssetVND = (() => {
+              const loanMap2 = {};
+              transactions.forEach(tx => {
+                if (tx.category==="lending"&&tx.type==="expense"&&tx.note) { const nm=tx.note.trim(); loanMap2[nm]=(loanMap2[nm]||0)+toVND(tx.amount,tx.currency); }
+                if (tx.category==="loan_repay"&&tx.type==="income"&&tx.note) { const nm=tx.note.trim(); loanMap2[nm]=(loanMap2[nm]||0)-toVND(tx.amount,tx.currency); }
+              });
+              return Object.values(loanMap2).reduce((s,v)=>s+Math.max(0,v),0);
+            })();
+            const savingsAssetVND = savings.reduce((s,sv)=>s+toVND(sv.saved,sv.currency),0);
+            const totalInvVND = investments.reduce((s,inv)=>s+toVND(inv.amount*(inv.currentPrice||inv.buyPrice||0),inv.currency),0);
+            const totalLoanDebtVND = loans.reduce((s,l)=>{
+              const mr = l.rateType==="year"?(l.rate||0)/100/12:(l.rate||0)/100;
+              const ms = l.startDate?Math.max(0,Math.floor((new Date()-new Date(l.startDate))/(1000*60*60*24*30))):0;
+              const interest = l.amount>0&&mr>0&&ms>0?l.amount*(Math.pow(1+mr,ms)-1):0;
+              return s+toVND(Math.max(0,l.amount+interest-(l.paidAmount||0)),l.currency);
+            },0);
+            const walletTotalVND = Object.values(walletCurrentBalances).reduce((s,curs)=>{
+              return s+Object.entries(curs).reduce((ss,[cur,amt])=>ss+toVND(amt,cur),0);
+            },0);
+            const netWorthVND = walletTotalVND + savingsAssetVND + lendingAssetVND + totalInvVND - totalLoanDebtVND;
+            return (
+              <div style={{ background:"linear-gradient(135deg,#f8fafc,#f1f5f9)", borderRadius:16, padding:"16px 18px", border:"1px solid #e2e8f0" }}>
+                <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>💎 {lang==="vi"?"Tổng quan tài chính":"Financial Position"}</div>
+                {[
+                  { l:lang==="vi"?"Nguồn tiền":"Wallets", v:walletTotalVND, c:"#12B76A", icon:"💰" },
+                  { l:lang==="vi"?"Tiết kiệm":"Savings", v:savingsAssetVND, c:"#7A5AF8", icon:"🎯" },
+                  { l:lang==="vi"?"Cho vay":"Lending", v:lendingAssetVND, c:"#F59E0B", icon:"🤝" },
+                  { l:lang==="vi"?"Đầu tư":"Investments", v:totalInvVND, c:"#06B6D4", icon:"📊" },
+                  { l:lang==="vi"?"Khoản vay":"Loans", v:-totalLoanDebtVND, c:"#DC2626", icon:"🏦" },
+                ].map((r,i) => (
+                  <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 10px" }}>
+                    <span style={{ fontSize:12, color:"#64748b" }}>{r.icon} {r.l}</span>
+                    <span style={{ fontSize:13, fontWeight:700, color:r.c, fontFamily:F }}>{r.v>=0?"+":""}{formatVND(r.v)}</span>
+                  </div>
+                ))}
+                <div style={{ borderTop:"2px solid #e2e8f0", marginTop:8, paddingTop:8, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <span style={{ fontSize:13, fontWeight:800, color:"#0f172a" }}>💎 {lang==="vi"?"Giá trị ròng":"Net Worth"}</span>
+                  <span style={{ fontSize:16, fontWeight:800, fontFamily:F, color:netWorthVND>=0?"#12B76A":"#DC2626" }}>{formatVND(netWorthVND)}</span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+      {/* ═══ INSURANCE ═══ */}
+      {tab === "insurance" && (
+        <div>
+          <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
+            <StatCard label={t("nextPayment")} value={formatVND(nextPaymentInsVND)} color="#06B6D4" bg="#ecfeff" />
+            <StatCard label={t("totalYear")} value={formatVND(yearlyInsVND)} color="#0891B2" bg="#ecfeff" />
+          </div>
+          <button onClick={()=>setShowAddInsurance(true)} style={{ width:"100%", padding:12, border:"2px dashed #e2e8f0", borderRadius:14, cursor:"pointer", background:"transparent", color:"#94a3b8", fontWeight:600, fontSize:13, marginBottom:16, fontFamily:F }}>{t("addInsPolicy")}</button>
+          {insurance.map(ins => {
+            const person = people.find(p=>p.id===ins.insuredPerson);
+            const daysUntilDue = ins.nextDue ? Math.ceil((new Date(ins.nextDue)-new Date())/(1000*60*60*24)) : null;
+            const isUrgent = daysUntilDue !== null && daysUntilDue <= 30;
+            const isPast = daysUntilDue !== null && daysUntilDue < 0;
+            // Total paid calculation
+            const freqMonths = ins.frequency === "semi-annual" ? 6 : 3;
+            const monthsElapsed = ins.startDate ? Math.max(0, Math.floor((new Date() - new Date(ins.startDate)) / (1000*60*60*24*30))) : 0;
+            const numPayments = Math.floor(monthsElapsed / freqMonths) + 1;
+            const totalPaidVND = toVND(ins.premium * numPayments, ins.currency);
+            return (
+              <div key={ins.id} style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:10, borderLeft:`4px solid ${ins.provider==="AIA"?"#DC2626":"#2563EB"}` }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+                  <div>
+                    <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+                      <span style={{ fontSize:11, fontWeight:800, color:ins.provider==="AIA"?"#DC2626":"#2563EB", background:ins.provider==="AIA"?"#fef2f2":"#eff6ff", padding:"2px 8px", borderRadius:6, fontFamily:F }}>{ins.provider}</span>
+                      {person && <span style={{ fontSize:12 }}>{person.icon} {n(person.id)}</span>}
+                    </div>
+                    <div style={{ fontSize:14, fontWeight:700, fontFamily:F }}>{ins.policyName}</div>
+                    {ins.note && <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>{ins.note}</div>}
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:14, fontWeight:700, fontFamily:F }}>{formatVND(toVND(ins.premium,ins.currency))}</div>
+                    <div style={{ fontSize:10, color:"#94a3b8" }}>/{ins.frequency === "semi-annual" ? t("perHalf") : t("perQuarter")}</div>
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:12, fontSize:11, color:"#64748b", flexWrap:"wrap" }}>
+                  {ins.startDate && <span>{t("started")} {new Date(ins.startDate).toLocaleDateString("en-US")}</span>}
+                  {ins.totalYears>0 && <span>{t("durationLabel")} {ins.totalYears} {t("years")}</span>}
+                  <span style={{ background:"#f1f5f9", padding:"1px 8px", borderRadius:6, fontWeight:600 }}>{ins.frequency === "semi-annual" ? t("semiAnnual") : t("quarterly")}</span>
+                </div>
+                <div style={{ marginTop:6, fontSize:11, color:"#7A5AF8", fontWeight:600, fontFamily:F }}>
+                  {lang==="vi"?"Đã đóng":"Total paid"}: {formatVND(totalPaidVND)} ({numPayments} {lang==="vi"?"kỳ":"payments"})
+                </div>
+                {ins.nextDue && (
+                  <div style={{
+                    marginTop:6, padding:"6px 12px", borderRadius:8, fontSize:12, fontWeight:600, fontFamily:F,
+                    background: isPast?"#fef2f2":isUrgent?"#fffbeb":"#f0fdf4",
+                    color: isPast?"#DC2626":isUrgent?"#D97706":"#16A34A",
+                  }}>
+                    {isPast ? `⚠️ ${t("overdue")} ${Math.abs(daysUntilDue)} ${t("daysLeft")}` :
+                     isUrgent ? `⏰ ${daysUntilDue} ${t("daysLeft")} (${new Date(ins.nextDue).toLocaleDateString("en-US")})` :
+                     `✓ ${t("nextDue")} ${new Date(ins.nextDue).toLocaleDateString("en-US")} (${daysUntilDue} ${t("daysLeft")})`}
+                  </div>
+                )}
+                <div style={{ display:"flex", gap:8, marginTop:6 }}>
+                  <button onClick={()=>editInsurance(ins)} style={{ border:"none", background:"none", color:"#cbd5e1", fontSize:10, cursor:"pointer", fontFamily:F }}>✎ {lang==="vi"?"Sửa":"Edit"}</button>
+                  <button onClick={()=>saveIns(insurance.filter(x=>x.id!==ins.id))} style={{ border:"none", background:"none", color:"#cbd5e1", fontSize:10, cursor:"pointer", fontFamily:F }}>{t("del")}</button>
+                </div>
+              </div>
+            );
+          })}
+          {insurance.length===0 && <div style={{ textAlign:"center", padding:36, color:"#94a3b8", fontSize:13 }}>{t("noInsurance")}</div>}
+        </div>
+      )}
+      {/* ═══ LENDING ═══ */}
+      {tab === "lending" && (() => {
+        // Group lending transactions by borrower name (note field)
+        const loanMap = {};
+        transactions.forEach(tx => {
+          if (tx.category === "lending" && tx.type === "expense" && tx.note) {
+            const name = tx.note.trim();
+            if (!loanMap[name]) loanMap[name] = { lent: [], repaid: [], firstDate: tx.date };
+            loanMap[name].lent.push(tx);
+            if (tx.date < loanMap[name].firstDate) loanMap[name].firstDate = tx.date;
+          }
+          if (tx.category === "loan_repay" && tx.type === "income" && tx.note) {
+            const name = tx.note.trim();
+            if (!loanMap[name]) loanMap[name] = { lent: [], repaid: [], firstDate: tx.date };
+            loanMap[name].repaid.push(tx);
+          }
+        });
+        const borrowers = Object.entries(loanMap).map(([name, data]) => {
+          const totalLent = data.lent.reduce((s, tx) => s + toVND(tx.amount, tx.currency), 0);
+          const totalRepaid = data.repaid.reduce((s, tx) => s + toVND(tx.amount, tx.currency), 0);
+          const outstanding = totalLent - totalRepaid;
+          // loanRates[name] can be number (old) or object (new)
+          const lr = loanRates[name];
+          const rate = typeof lr === "object" ? (lr?.rate||0) : (lr||0);
+          const repayType = typeof lr === "object" ? (lr?.repayType||"flexible") : "flexible";
+          const monthlyRepay = typeof lr === "object" ? (lr?.monthlyRepay||0) : 0;
+          const daysSinceFirst = Math.max(0, Math.floor((new Date() - new Date(data.firstDate)) / (1000*60*60*24)));
+          const monthsElapsed = Math.max(0, Math.floor(daysSinceFirst / 30));
+          const monthlyRate = rate / 100;
+          const interestAccrued = outstanding > 0 && rate > 0 && monthsElapsed > 0 ? outstanding * (Math.pow(1 + monthlyRate, monthsElapsed) - 1) : 0;
+          const totalOwed = outstanding + interestAccrued;
+          return { name, totalLent, totalRepaid, outstanding, rate, repayType, monthlyRepay, interestAccrued, totalOwed, monthsElapsed, daysSinceFirst, txCount: data.lent.length + data.repaid.length, allTx: [...data.lent, ...data.repaid].sort((a,b)=>new Date(b.date)-new Date(a.date)) };
+        }).sort((a, b) => b.outstanding - a.outstanding);
+        const totalOutstanding = borrowers.reduce((s, b) => s + b.totalOwed, 0);
+        const totalInterest = borrowers.reduce((s, b) => s + b.interestAccrued, 0);
+        return (
+        <div>
+          {/* Lending Summary - unique design */}
+          <div style={{ background:"linear-gradient(135deg,#fffbeb,#fef3c7)", borderRadius:16, padding:"18px", marginBottom:16, border:"1px solid #fde68a" }}>
+            <div style={{ fontSize:13, fontWeight:700, marginBottom:12, color:"#92400e" }}>🤝 {lang==="vi"?"Tổng quan cho vay":"Lending Overview"}</div>
+            <div style={{ display:"flex", gap:12, marginBottom:10 }}>
+              <div style={{ flex:1, background:"#fff", borderRadius:12, padding:"10px 14px", textAlign:"center" }}>
+                <div style={{ fontSize:9, color:"#94a3b8", marginBottom:4 }}>{lang==="vi"?"Tổng cho vay":"Total Lent"}</div>
+                <div style={{ fontSize:15, fontWeight:800, color:"#F97066", fontFamily:F }}>{formatVND(borrowers.reduce((s,b)=>s+b.totalLent,0))}</div>
+              </div>
+              <div style={{ flex:1, background:"#fff", borderRadius:12, padding:"10px 14px", textAlign:"center" }}>
+                <div style={{ fontSize:9, color:"#94a3b8", marginBottom:4 }}>{lang==="vi"?"Đã thu":"Collected"}</div>
+                <div style={{ fontSize:15, fontWeight:800, color:"#12B76A", fontFamily:F }}>{formatVND(borrowers.reduce((s,b)=>s+b.totalRepaid,0))}</div>
+              </div>
+            </div>
+            <div style={{ display:"flex", gap:12 }}>
+              <div style={{ flex:1, background:"#fff", borderRadius:12, padding:"10px 14px", textAlign:"center" }}>
+                <div style={{ fontSize:9, color:"#94a3b8", marginBottom:4 }}>{lang==="vi"?"Dư nợ gốc":"Outstanding"}</div>
+                <div style={{ fontSize:15, fontWeight:800, color:"#F59E0B", fontFamily:F }}>{formatVND(totalOutstanding - totalInterest)}</div>
+              </div>
+              <div style={{ flex:1, background:"#fff", borderRadius:12, padding:"10px 14px", textAlign:"center" }}>
+                <div style={{ fontSize:9, color:"#94a3b8", marginBottom:4 }}>{lang==="vi"?"Lãi tích lũy":"Interest"}</div>
+                <div style={{ fontSize:15, fontWeight:800, color:"#7A5AF8", fontFamily:F }}>{formatVND(totalInterest)}</div>
+              </div>
+            </div>
+            <div style={{ borderTop:"1px solid #fde68a", marginTop:12, paddingTop:10, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ fontSize:12, fontWeight:700, color:"#92400e" }}>💰 {t("loanAsset")}</span>
+              <span style={{ fontSize:18, fontWeight:800, color:"#F59E0B", fontFamily:F }}>{formatVND(totalOutstanding)}</span>
+            </div>
+          </div>
+          {borrowers.length === 0 && <div style={{ textAlign:"center", padding:36, color:"#94a3b8", fontSize:13 }}>{t("noLoans")}</div>}
+          {borrowers.map(b => {
+            const pctRepaid = b.totalLent > 0 ? Math.min((b.totalRepaid / b.totalLent) * 100, 100) : 0;
+            const isPaidOff = b.outstanding <= 0;
+            return (
+              <div key={b.name} style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:10, borderLeft:`4px solid ${isPaidOff?"#12B76A":"#F59E0B"}` }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:700, fontFamily:F }}>{b.name}</div>
+                    <div style={{ fontSize:11, color:"#94a3b8" }}>{b.txCount} {lang==="vi"?"giao dịch":"transactions"} · {b.monthsElapsed > 0 ? `${b.monthsElapsed} ${lang==="vi"?"tháng":"months"}` : `${b.daysSinceFirst} ${lang==="vi"?"ngày":"days"}`}</div>
+                  </div>
+                  {isPaidOff && <span style={{ fontSize:11, background:"#f0fdf4", color:"#12B76A", padding:"2px 10px", borderRadius:8, fontWeight:700 }}>✓ {lang==="vi"?"Đã trả hết":"Paid"}</span>}
+                </div>
+                <div style={{ display:"flex", gap:8, marginBottom:8, flexWrap:"wrap" }}>
+                  <div style={{ background:"#fff", borderRadius:10, padding:"8px 12px", flex:1, minWidth:80 }}>
+                    <div style={{ fontSize:9, color:"#94a3b8" }}>{t("lentTotal")}</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:"#F97066" }}>{formatVND(b.totalLent)}</div>
+                  </div>
+                  <div style={{ background:"#fff", borderRadius:10, padding:"8px 12px", flex:1, minWidth:80 }}>
+                    <div style={{ fontSize:9, color:"#94a3b8" }}>{t("repaidTotal")}</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:"#12B76A" }}>{formatVND(b.totalRepaid)}</div>
+                  </div>
+                  <div style={{ background:"#fff", borderRadius:10, padding:"8px 12px", flex:1, minWidth:80 }}>
+                    <div style={{ fontSize:9, color:"#94a3b8" }}>{t("outstanding")}</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:isPaidOff?"#12B76A":"#F59E0B" }}>{formatVND(b.outstanding)}</div>
+                  </div>
+                </div>
+                {b.rate > 0 && b.outstanding > 0 && (
+                  <div style={{ display:"flex", gap:8, marginBottom:8, flexWrap:"wrap" }}>
+                    <div style={{ background:"#f5f3ff", borderRadius:10, padding:"8px 12px", flex:1 }}>
+                      <div style={{ fontSize:9, color:"#94a3b8" }}>{lang==="vi"?"Lãi cộng dồn":"Compound Interest"}</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:"#7A5AF8" }}>+{formatVND(b.interestAccrued)}</div>
+                    </div>
+                    <div style={{ background:"#fffbeb", borderRadius:10, padding:"8px 12px", flex:1 }}>
+                      <div style={{ fontSize:9, color:"#94a3b8" }}>{lang==="vi"?"Tổng phải trả":"Total Owed"}</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:"#F59E0B" }}>{formatVND(b.totalOwed)}</div>
+                    </div>
+                  </div>
+                )}
+                {/* Repayment progress */}
+                <div style={{ height:6, background:"#e2e8f0", borderRadius:3, overflow:"hidden", marginBottom:8 }}>
+                  <div style={{ height:"100%", borderRadius:3, width:`${pctRepaid}%`, background:isPaidOff?"#12B76A":"#F59E0B", transition:"width 0.3s" }} />
+                </div>
+                {/* Interest rate */}
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                  <span style={{ fontSize:11, color:"#64748b", fontFamily:F }}>{lang==="vi"?"Lãi %/tháng":"Int %/mo"}:</span>
+                  <input type="number" value={b.rate} min="0" step="0.1" onChange={e => {
+                    const old = typeof loanRates[b.name]==="object" ? loanRates[b.name] : {};
+                    saveLR({ ...loanRates, [b.name]: { ...old, rate: parseFloat(e.target.value)||0 } });
+                  }} style={{ width:55, padding:"4px 8px", border:"2px solid #e2e8f0", borderRadius:8, fontSize:12, fontFamily:F, outline:"none", textAlign:"center" }} />
+                  <span style={{ fontSize:11, color:"#94a3b8" }}>%</span>
+                </div>
+                {/* Repayment schedule */}
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4, flexWrap:"wrap" }}>
+                  <span style={{ fontSize:11, color:"#64748b", fontFamily:F }}>{lang==="vi"?"Thu nợ":"Repay"}:</span>
+                  {[{v:"monthly",l:lang==="vi"?"Hàng tháng":"Monthly"},{v:"flexible",l:lang==="vi"?"Linh hoạt":"Flexible"}].map(opt => (
+                    <button key={opt.v} onClick={() => {
+                      const old = typeof loanRates[b.name]==="object" ? loanRates[b.name] : { rate: b.rate };
+                      saveLR({ ...loanRates, [b.name]: { ...old, repayType: opt.v } });
+                    }} style={{
+                      padding:"3px 10px", border:b.repayType===opt.v?"2px solid #F59E0B":"1px solid #e2e8f0",
+                      borderRadius:6, cursor:"pointer", fontSize:10, fontWeight:b.repayType===opt.v?700:500, fontFamily:F,
+                      background:b.repayType===opt.v?"#fffbeb":"#fafbfc", color:b.repayType===opt.v?"#F59E0B":"#94a3b8",
+                    }}>{opt.l}</button>
+                  ))}
+                </div>
+                {b.repayType === "monthly" && (
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                    <span style={{ fontSize:11, color:"#64748b", fontFamily:F }}>{lang==="vi"?"Trả/tháng":"Per mo"}:</span>
+                    <input type="number" value={b.monthlyRepay} min="0" onChange={e => {
+                      const old = typeof loanRates[b.name]==="object" ? loanRates[b.name] : { rate: b.rate };
+                      saveLR({ ...loanRates, [b.name]: { ...old, monthlyRepay: parseFloat(e.target.value)||0 } });
+                    }} style={{ width:90, padding:"4px 8px", border:"2px solid #e2e8f0", borderRadius:8, fontSize:12, fontFamily:F, outline:"none", textAlign:"center" }} />
+                    {b.monthlyRepay > 0 && b.outstanding > 0 && (
+                      <span style={{ fontSize:10, color:"#94a3b8" }}>≈ {Math.ceil(b.totalOwed / b.monthlyRepay)} {lang==="vi"?"tháng":"mo"}</span>
+                    )}
+                  </div>
+                )}
+                {b.rate > 0 && b.outstanding > 0 && (
+                  <div style={{ fontSize:10, color:"#7A5AF8", fontFamily:F, background:"#f5f3ff", padding:"4px 10px", borderRadius:6, marginTop:4 }}>
+                    {lang==="vi"?"Lãi kép":"Compound"}: {b.rate}%/{lang==="vi"?"tháng":"mo"} × {b.monthsElapsed} {lang==="vi"?"tháng":"months"} = {formatVND(b.interestAccrued)}
+                  </div>
+                )}
+                {/* Transaction list */}
+                <details style={{ marginTop:8 }}>
+                  <summary style={{ fontSize:11, color:"#6366f1", cursor:"pointer", fontFamily:F, fontWeight:600 }}>
+                    📋 {b.txCount} {lang==="vi"?"giao dịch":"transactions"}
+                  </summary>
+                  <div style={{ marginTop:6 }}>
+                    {b.allTx.map(tx => (
+                      <div key={tx.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 8px", borderBottom:"1px solid #f1f5f9", fontSize:11 }}>
+                        <div style={{ flex:1 }}>
+                          <span style={{ color:tx.type==="expense"?"#F97066":"#12B76A", fontWeight:700 }}>
+                            {tx.type==="expense"?"−":"+"}{formatCurrency(tx.amount, tx.currency)}
+                          </span>
+                          <span style={{ color:"#94a3b8", marginLeft:6 }}>{new Date(tx.date).toLocaleDateString("en-US")}</span>
+                        </div>
+                        <div style={{ display:"flex", gap:6 }}>
+                          <button onClick={()=>editTransaction(tx)} style={{ border:"none", background:"none", color:"#6366f1", fontSize:10, cursor:"pointer", fontFamily:F }}>✎</button>
+                          <button onClick={()=>saveTx(transactions.filter(t2=>t2.id!==tx.id))} style={{ border:"none", background:"none", color:"#cbd5e1", fontSize:10, cursor:"pointer", fontFamily:F }}>✕</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            );
+          })}
+          <div style={{ fontSize:11, color:"#94a3b8", textAlign:"center", padding:12, fontFamily:F }}>
+            {lang==="vi"
+              ? "Thêm khoản cho vay: vào Giao dịch → Chi tiêu → danh mục \"Cho vay\" → ghi tên người vay vào Note"
+              : "To add a loan: go to Transactions → Expense → category \"Lending\" → write borrower name in Note"}
+          </div>
+        </div>
+        );
+      })()}
+      {/* ═══ LOANS ═══ */}
+      {tab === "loans" && (() => {
+        const loanItems = loans.map(loan => {
+          const principal = loan.amount;
+          const isAnnual = loan.rateType === "year";
+          const monthlyRate = isAnnual ? (loan.rate || 0) / 100 / 12 : (loan.rate || 0) / 100;
+          const daysSince = loan.startDate ? Math.max(0, Math.floor((new Date() - new Date(loan.startDate)) / (1000*60*60*24))) : 0;
+          const monthsSince = Math.max(0, Math.floor(daysSince / 30));
+          const interestAccrued = principal > 0 && monthlyRate > 0 && monthsSince > 0 ? principal * (Math.pow(1 + monthlyRate, monthsSince) - 1) : 0;
+          const totalDebt = principal + interestAccrued;
+          const paid = loan.paidAmount || 0;
+          const remaining = Math.max(0, totalDebt - paid);
+          const pctPaid = totalDebt > 0 ? Math.min((paid / totalDebt) * 100, 100) : 0;
+          // Payment schedule
+          const inst = loan.installment || 0;
+          const payPerYear = loan.payFreq === "quarterly" ? 4 : 12;
+          const totalPayments = loan.termMonths > 0 ? Math.ceil(loan.termMonths / (12 / payPerYear)) : 0;
+          const paymentsMade = inst > 0 ? Math.floor(paid / inst) : 0;
+          const paymentsLeft = Math.max(0, totalPayments - paymentsMade);
+          const displayRate = isAnnual ? `${loan.rate}%/${lang==="vi"?"năm":"yr"}` : `${loan.rate}%/${lang==="vi"?"tháng":"mo"}`;
+          const displayMonthlyRate = isAnnual ? `${(loan.rate/12).toFixed(2)}%/${lang==="vi"?"tháng":"mo"}` : `${loan.rate}%/${lang==="vi"?"tháng":"mo"}`;
+          return { ...loan, interestAccrued, totalDebt, paid, remaining, pctPaid, monthsSince, daysSince, inst, totalPayments, paymentsMade, paymentsLeft, displayRate, displayMonthlyRate, monthlyRate };
+        });
+        const totalDebtVND = loanItems.reduce((s, l) => s + toVND(l.remaining, l.currency), 0);
+        const totalInterestVND = loanItems.reduce((s, l) => s + toVND(l.interestAccrued, l.currency), 0);
+        return (
+        <div>
+          <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
+            <StatCard label={lang==="vi"?"Tổng nợ còn lại":"Remaining Debt"} value={formatVND(totalDebtVND)} color="#DC2626" bg="#fef2f2" />
+            <StatCard label={lang==="vi"?"Lãi tích lũy":"Interest"} value={formatVND(totalInterestVND)} color="#F59E0B" bg="#fffbeb" />
+          </div>
+          <button onClick={()=>setShowAddLoan(true)} style={{ width:"100%", padding:12, border:"2px dashed #e2e8f0", borderRadius:14, cursor:"pointer", background:"transparent", color:"#94a3b8", fontWeight:600, fontSize:13, marginBottom:16, fontFamily:F }}>+ {lang==="vi"?"Thêm khoản vay":"Add Loan"}</button>
+          {loanItems.map(loan => {
+            const isPaidOff = loan.remaining <= 0;
+            return (
+              <div key={loan.id} style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:10, borderLeft:`4px solid ${loan.type==="bank"?"#2563EB":"#F59E0B"}` }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+                  <div>
+                    <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+                      <span style={{ fontSize:11, fontWeight:800, color:loan.type==="bank"?"#2563EB":"#F59E0B", background:loan.type==="bank"?"#eff6ff":"#fffbeb", padding:"2px 8px", borderRadius:6, fontFamily:F }}>{loan.type==="bank"?(lang==="vi"?"Ngân hàng":"Bank"):(lang==="vi"?"Cá nhân":"Personal")}</span>
+                      <span style={{ fontSize:10, color:"#94a3b8", fontFamily:F }}>{loan.displayRate}</span>
+                      {isPaidOff && <span style={{ fontSize:11, background:"#f0fdf4", color:"#12B76A", padding:"2px 8px", borderRadius:6, fontWeight:700 }}>✓</span>}
+                    </div>
+                    <div style={{ fontSize:14, fontWeight:700, fontFamily:F }}>{loan.lender}</div>
+                    {loan.note && <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>{loan.note}</div>}
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:14, fontWeight:700, fontFamily:F, color:"#DC2626" }}>{formatVND(toVND(loan.remaining, loan.currency))}</div>
+                    <div style={{ fontSize:10, color:"#94a3b8" }}>{lang==="vi"?"còn nợ":"remaining"}</div>
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:6, marginBottom:8, flexWrap:"wrap" }}>
+                  {[
+                    { l:lang==="vi"?"Gốc":"Principal", v:formatCurrency(loan.amount, loan.currency), c:"#0f172a" },
+                    { l:lang==="vi"?"Lãi kép":"Interest", v:`+${formatCurrency(loan.interestAccrued, loan.currency)}`, c:"#F59E0B" },
+                    { l:lang==="vi"?"Tổng nợ":"Total", v:formatCurrency(loan.totalDebt, loan.currency), c:"#DC2626" },
+                    { l:lang==="vi"?"Đã trả":"Paid", v:formatCurrency(loan.paid, loan.currency), c:"#12B76A" },
+                  ].map((s,i) => (
+                    <div key={i} style={{ background:"#fff", borderRadius:8, padding:"6px 10px", flex:1, minWidth:70 }}>
+                      <div style={{ fontSize:8, color:"#94a3b8" }}>{s.l}</div>
+                      <div style={{ fontSize:12, fontWeight:700, color:s.c }}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Progress */}
+                <div style={{ height:6, background:"#e2e8f0", borderRadius:3, overflow:"hidden", marginBottom:6 }}>
+                  <div style={{ height:"100%", borderRadius:3, width:`${loan.pctPaid}%`, background:isPaidOff?"#12B76A":"#3b82f6", transition:"width 0.3s" }} />
+                </div>
+                {/* Payment schedule info */}
+                <div style={{ display:"flex", gap:8, fontSize:10, color:"#64748b", flexWrap:"wrap", marginBottom:4, fontFamily:F }}>
+                  {loan.startDate && <span>📅 {new Date(loan.startDate).toLocaleDateString("en-US")}</span>}
+                  {loan.termMonths > 0 && <span>⏱️ {loan.termMonths} {lang==="vi"?"tháng":"mo"}</span>}
+                  <span>📊 {loan.displayMonthlyRate}</span>
+                  <span>🕐 {loan.monthsSince > 0 ? `${loan.monthsSince} ${lang==="vi"?"tháng":"mo"}` : `${loan.daysSince} ${lang==="vi"?"ngày":"days"}`}</span>
+                </div>
+                {loan.inst > 0 && (
+                  <div style={{ fontSize:10, color:"#3b82f6", fontFamily:F, background:"#eff6ff", padding:"4px 10px", borderRadius:6, marginBottom:4 }}>
+                    💳 {lang==="vi"?"Trả góp":"Installment"}: {formatCurrency(loan.inst, loan.currency)}/{loan.payFreq==="quarterly"?(lang==="vi"?"quý":"qtr"):(lang==="vi"?"tháng":"mo")}
+                    {loan.totalPayments > 0 && ` · ${loan.paymentsMade}/${loan.totalPayments} ${lang==="vi"?"kỳ":"payments"}`}
+                    {loan.paymentsLeft > 0 && ` · ${lang==="vi"?"còn":"left"} ${loan.paymentsLeft} ${lang==="vi"?"kỳ":"payments"}`}
+                  </div>
+                )}
+                {loan.rate > 0 && loan.monthsSince > 0 && (
+                  <div style={{ fontSize:10, color:"#7A5AF8", fontFamily:F, background:"#f5f3ff", padding:"4px 10px", borderRadius:6 }}>
+                    {lang==="vi"?"Lãi kép":"Compound"}: {loan.displayMonthlyRate} × {loan.monthsSince} {lang==="vi"?"tháng":"mo"} = {formatCurrency(loan.interestAccrued, loan.currency)}
+                  </div>
+                )}
+                <div style={{ display:"flex", gap:8, marginTop:6 }}>
+                  <button onClick={()=>editLoan(loan)} style={{ border:"none", background:"none", color:"#cbd5e1", fontSize:10, cursor:"pointer", fontFamily:F }}>✎ {lang==="vi"?"Sửa":"Edit"}</button>
+                  <button onClick={()=>saveLo(loans.filter(x=>x.id!==loan.id))} style={{ border:"none", background:"none", color:"#cbd5e1", fontSize:10, cursor:"pointer", fontFamily:F }}>{t("del")}</button>
+                </div>
+              </div>
+            );
+          })}
+          {loans.length===0 && <div style={{ textAlign:"center", padding:36, color:"#94a3b8", fontSize:13 }}>{lang==="vi"?"Chưa có khoản vay":"No loans"}</div>}
+        </div>
+        );
+      })()}
+      {/* ═══ INVEST ═══ */}
+      {tab === "invest" && (
+        <div>
+          {investments.length>0 && (
+            <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
+              <StatCard label={t("valueVND")} value={formatVND(totalInvValVND)} color="#7A5AF8" bg="#f5f3ff" />
+              <StatCard label={t("pnl")} value={`${totalInvValVND>=totalInvCostVND?"+":""}${formatVND(totalInvValVND-totalInvCostVND)}`} color={totalInvValVND>=totalInvCostVND?"#12B76A":"#F97066"} bg={totalInvValVND>=totalInvCostVND?"#f0fdf4":"#fef2f2"} />
+            </div>
+          )}
+          <button onClick={()=>setShowAddInvest(true)} style={{ width:"100%", padding:12, border:"2px dashed #e2e8f0", borderRadius:14, cursor:"pointer", background:"transparent", color:"#94a3b8", fontWeight:600, fontSize:13, marginBottom:16, fontFamily:F }}>{t("addInvest")}</button>
+          {investments.map(inv => {
+            const vVal = toVND(inv.amount*(inv.currentPrice||0), inv.currency);
+            const vCost = toVND(inv.amount*(inv.buyPrice||0), inv.currency);
+            const pnl = vVal-vCost; const pnlP = vCost>0?((vVal-vCost)/vCost*100):0;
+            const it = INVESTMENT_TYPES.find(t=>t.id===inv.type);
+            return (
+              <div key={inv.id} style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:10 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <span style={{ fontSize:22 }}>{it?.icon||"💼"}</span>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700 }}>{inv.name}</div>
+                      <div style={{ fontSize:11, color:"#94a3b8" }}>{inv.amount} × {formatCurrency(inv.currentPrice||0,inv.currency)}</div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:14, fontWeight:700 }}>{formatVND(vVal)}</div>
+                    <div style={{ fontSize:11, fontWeight:600, color:pnl>=0?"#12B76A":"#F97066" }}>{pnl>=0?"▲":"▼"} {formatVND(Math.abs(pnl))} ({pnlP.toFixed(1)}%)</div>
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:8, marginTop:6 }}>
+                  <button onClick={()=>editInvestment(inv)} style={{ border:"none", background:"none", color:"#cbd5e1", fontSize:10, cursor:"pointer", fontFamily:F }}>✎ {t("del") === "Xóa" ? "Sửa" : "Edit"}</button>
+                  <button onClick={()=>saveInv(investments.filter(x=>x.id!==inv.id))} style={{ border:"none", background:"none", color:"#cbd5e1", fontSize:10, cursor:"pointer", fontFamily:F }}>{t("del")}</button>
+                </div>
+              </div>
+            );
+          })}
+          {investments.length===0 && <div style={{ textAlign:"center", padding:36, color:"#94a3b8", fontSize:13 }}>{t("noInvest")}</div>}
+        </div>
+      )}
+      {/* ═══ SAVINGS ═══ */}
+      {tab === "savings" && (
+        <div>
+          {/* Summary */}
+          <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
+            <StatCard label={t("saved")} value={formatVND(totalSavedVND)} color="#12B76A" bg="#f0fdf4" />
+            <StatCard label={t("target")} value={formatVND(totalTargetVND)} color="#7A5AF8" bg="#f5f3ff" sub={totalTargetVND>0?`${(totalSavedVND/totalTargetVND*100).toFixed(0)}% ${t("complete")}`:""} />
+          </div>
+          {/* Savings Recommendation */}
+          {savingsRecommendation && (
+            <div style={{ background:"linear-gradient(135deg,#f0fdf4,#dcfce7)", borderRadius:16, padding:"16px 18px", marginBottom:16, border:"1px solid #bbf7d0" }}>
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:10, color:"#16A34A" }}>{t("savingsRec")}</div>
+              <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap" }}>
+                <div style={{ background:"#fff", borderRadius:10, padding:"10px 14px", flex:1, minWidth:110 }}>
+                  <div style={{ fontSize:9, color:"#64748b", fontFamily:F }}>{	("avgMonInc")}</div>
+                  <div style={{ fontSize:14, fontWeight:800, fontFamily:F, color:"#12B76A" }}>{formatVND(savingsRecommendation.avgInc)}</div>
+                </div>
+                <div style={{ background:"#fff", borderRadius:10, padding:"10px 14px", flex:1, minWidth:110 }}>
+                  <div style={{ fontSize:9, color:"#64748b", fontFamily:F }}>{	("avgMonExp")}</div>
+                  <div style={{ fontSize:14, fontWeight:800, fontFamily:F, color:"#F97066" }}>{formatVND(savingsRecommendation.avgExp)}</div>
+                </div>
+              </div>
+              <div style={{ fontSize:12, fontFamily:F, lineHeight:1.8, color:"#475569" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", padding:"6px 10px", background:"#fff", borderRadius:8, marginBottom:4 }}>
+                  <span>{t("recMonth")}</span>
+                  <span style={{ fontWeight:700, color:"#16A34A" }}>{formatVND(savingsRecommendation.idealSavings)}</span>
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between", padding:"6px 10px", background:"#fff", borderRadius:8, marginBottom:4 }}>
+                  <span>{t("practSug")}</span>
+                  <span style={{ fontWeight:700, color:"#7A5AF8" }}>{formatVND(savingsRecommendation.suggestedSavings)}</span>
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between", padding:"6px 10px", background:"#fff", borderRadius:8, marginBottom:4 }}>
+                  <span>{t("emergFund")}</span>
+                  <span style={{ fontWeight:700 }}>{formatVND(savingsRecommendation.emergencyTarget)}</span>
+                </div>
+                {savingsRecommendation.monthlyForGoals > 0 && (
+                  <div style={{ display:"flex", justifyContent:"space-between", padding:"6px 10px", background:savingsRecommendation.monthlyForGoals>savingsRecommendation.suggestedSavings?"#fef2f2":"#fff", borderRadius:8, marginBottom:4 }}>
+                    <span>{t("needMonth")}</span>
+                    <span style={{ fontWeight:700, color:savingsRecommendation.monthlyForGoals>savingsRecommendation.suggestedSavings?"#DC2626":"#16A34A" }}>{formatVND(savingsRecommendation.monthlyForGoals)}</span>
+                  </div>
+                )}
+              </div>
+              {savingsRecommendation.avgSurplus <= 0 && (
+                <div style={{ fontSize:11, color:"#DC2626", fontWeight:600, marginTop:8, fontFamily:F, padding:"8px 12px", background:"#fef2f2", borderRadius:8 }}>
+                  ⚠️ {t("reduceBefore")}
+                </div>
+              )}
+              {/* 50/30/20 breakdown */}
+              <div style={{ marginTop:12, padding:"10px 14px", background:"#fff", borderRadius:10 }}>
+                <div style={{ fontSize:11, fontWeight:700, marginBottom:8, color:"#64748b" }}>{t("rule502030")}</div>
+                {[
+                  { label:t("needs50"), amount: savingsRecommendation.idealNeeds, color:"#F97066", icon:"🏠" },
+                  { label:t("wants30"), amount: savingsRecommendation.idealWants, color:"#FDB022", icon:"🎬" },
+                  { label:t("savings20"), amount: savingsRecommendation.idealSavings, color:"#12B76A", icon:"🎯" },
+                ].map((r, i) => (
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                    <span style={{ fontSize:14 }}>{r.icon}</span>
+                    <div style={{ flex:1 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, fontWeight:600, marginBottom:2 }}>
+                        <span>{r.label}</span><span>{formatVND(r.amount)}</span>
+                      </div>
+                      <div style={{ height:4, background:"#e2e8f0", borderRadius:2, overflow:"hidden" }}>
+                        <div style={{ height:"100%", borderRadius:2, width:`${[50,30,20][i]}%`, background:r.color }} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Savings goals */}
+          <button onClick={()=>setShowAddSaving(true)} style={{ width:"100%", padding:12, border:"2px dashed #e2e8f0", borderRadius:14, cursor:"pointer", background:"transparent", color:"#94a3b8", fontWeight:600, fontSize:13, marginBottom:16, fontFamily:F }}>{t("addSavGoal")}</button>
+          {savings.map(sv => {
+            const pct = sv.target > 0 ? Math.min((sv.saved / sv.target) * 100, 100) : 0;
+            const done = sv.saved >= sv.target;
+            const remaining = sv.target - sv.saved;
+            const daysLeft = sv.deadline ? Math.ceil((new Date(sv.deadline) - new Date()) / (1000*60*60*24)) : null;
+            const monthsLeft = daysLeft !== null ? Math.max(1, Math.ceil(daysLeft / 30)) : null;
+            const perMonth = remaining > 0 && monthsLeft ? remaining / monthsLeft : 0;
+            return (
+              <div key={sv.id} style={{ background:"#f8fafc", borderRadius:16, padding:"16px 18px", marginBottom:10, borderLeft:`4px solid ${done?"#12B76A":"#7A5AF8"}` }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:700, fontFamily:F }}>{sv.name}</div>
+                    {sv.note && <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>{sv.note}</div>}
+                  </div>
+                  {done && <span style={{ fontSize:12, background:"#f0fdf4", color:"#12B76A", padding:"2px 10px", borderRadius:8, fontWeight:700 }}>{t("done")}</span>}
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, fontWeight:600, marginBottom:6, fontFamily:F }}>
+                  <span style={{ color:"#12B76A" }}>{formatCurrency(sv.saved, sv.currency)}</span>
+                  <span style={{ color:"#64748b" }}>{formatCurrency(sv.target, sv.currency)}</span>
+                </div>
+                <div style={{ height:8, background:"#e2e8f0", borderRadius:4, overflow:"hidden", marginBottom:8 }}>
+                  <div style={{ height:"100%", borderRadius:4, width:`${pct}%`, background:done?"#12B76A":"linear-gradient(90deg,#818cf8,#6366f1)", transition:"width 0.4s" }} />
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:"#94a3b8", fontFamily:F, flexWrap:"wrap", gap:4 }}>
+                  <span>{pct.toFixed(0)}% {t("complete")}</span>
+                  {!done && sv.currency !== reportCur && <span>{t("remaining")} ≈{formatVND(toVND(remaining, sv.currency))}</span>}
+                  {!done && daysLeft !== null && <span>{daysLeft > 0 ? `${daysLeft} ${t("daysLeft")}` : `${t("overdue")} ${Math.abs(daysLeft)} ${t("daysLeft")}`}</span>}
+                  {!done && perMonth > 0 && <span>Need {formatCurrency(perMonth, sv.currency)}/month</span>}
+                </div>
+                {/* Quick deposit */}
+                <div style={{ display:"flex", gap:6, marginTop:10 }}>
+                  {!done && depositForm.id === sv.id ? (
+                    <>
+                      <input type="number" placeholder={t("amount")} value={depositForm.amount} onChange={e => setDepositForm(f=>({...f,amount:e.target.value}))}
+                        style={{ flex:1, padding:"8px 12px", border:"2px solid #e2e8f0", borderRadius:10, fontSize:13, fontFamily:F, outline:"none", background:"#fff" }}
+                        onFocus={e=>e.target.style.borderColor="#6366f1"} onBlur={e=>e.target.style.borderColor="#e2e8f0"} />
+                      <button onClick={() => depositToSaving(sv.id, depositForm.amount)} style={{ padding:"8px 14px", border:"none", borderRadius:10, cursor:"pointer", fontSize:12, fontWeight:700, fontFamily:F, background:"#12B76A", color:"#fff" }}>{t("depositBtn")}</button>
+                      <button onClick={() => setDepositForm({id:null,amount:""})} style={{ padding:"8px 10px", border:"none", borderRadius:10, cursor:"pointer", fontSize:12, fontFamily:F, background:"#f1f5f9", color:"#94a3b8" }}>✕</button>
+                    </>
+                  ) : (
+                    <>
+                      {!done && <button onClick={() => setDepositForm({id:sv.id,amount:""})} style={{ padding:"6px 14px", border:"none", borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:600, fontFamily:F, background:"#eef2ff", color:"#6366f1" }}>{t("deposit")}</button>}
+                      <button onClick={() => editSaving(sv)} style={{ border:"none", background:"none", color:"#cbd5e1", fontSize:10, cursor:"pointer", fontFamily:F }}>✎ {lang==="vi"?"Sửa":"Edit"}</button>
+                      <button onClick={() => deleteSaving(sv.id)} style={{ border:"none", background:"none", color:"#cbd5e1", fontSize:10, cursor:"pointer", fontFamily:F }}>{t("del")}</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {savings.length===0 && <div style={{ textAlign:"center", padding:36, color:"#94a3b8", fontSize:13 }}>{t("noSavGoals")}</div>}
+        </div>
+      )}
+      {/* Budget FAB Menu */}
+      {showBudgetMenu && tab==="budget" && (
+        <div style={{ position:"fixed", bottom:96, right:"calc(50% - 90px)", zIndex:101, display:"flex", flexDirection:"column", gap:6 }}>
+          {[
+            { label: lang==="vi"?"+ Thu nhập dự kiến":"+ Estimated Income", icon:"💰", action:()=>{setPlanItemForm({name:"",amount:"",currency:"USDT",recurring:true});setShowAddPlanItem("income");setShowBudgetMenu(false);} },
+            { label: lang==="vi"?"+ Chi phí cố định":"+ Fixed Cost", icon:"📌", action:()=>{setPlanItemForm({name:"",amount:"",currency:"VND",recurring:true});setShowAddPlanItem("fixed");setShowBudgetMenu(false);} },
+            { label: lang==="vi"?"+ Ngân sách chi tiêu":"+ Discretionary Budget", icon:"🛒", action:()=>{setShowAddBudget(true);setShowBudgetMenu(false);} },
+          ].map((item, i) => (
+            <button key={i} onClick={item.action} style={{
+              padding:"10px 16px", border:"none", borderRadius:14, cursor:"pointer", fontFamily:F,
+              background:"#fff", boxShadow:"0 4px 16px rgba(0,0,0,0.12)", fontSize:13, fontWeight:600,
+              display:"flex", alignItems:"center", gap:8, color:"#0f172a", whiteSpace:"nowrap",
+            }}>
+              <span>{item.icon}</span>{item.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {showBudgetMenu && <div onClick={()=>setShowBudgetMenu(false)} style={{ position:"fixed", inset:0, zIndex:99 }} />}
+      {/* Lending FAB Menu */}
+      {showLendingMenu && tab==="lending" && (
+        <div style={{ position:"fixed", bottom:96, right:"calc(50% - 90px)", zIndex:101, display:"flex", flexDirection:"column", gap:6 }}>
+          {[
+            { label: lang==="vi"?"💸 Cho vay mới":"💸 New Lending", action:()=>{setTxForm(f=>({...f,type:"expense",category:"lending",note:""}));setShowAddTx(true);setShowLendingMenu(false);} },
+            { label: lang==="vi"?"💰 Thu nợ":"💰 Collect Repayment", action:()=>{setTxForm(f=>({...f,type:"income",category:"loan_repay",note:""}));setShowAddTx(true);setShowLendingMenu(false);} },
+          ].map((item, i) => (
+            <button key={i} onClick={item.action} style={{
+              padding:"10px 16px", border:"none", borderRadius:14, cursor:"pointer", fontFamily:F,
+              background:"#fff", boxShadow:"0 4px 16px rgba(0,0,0,0.12)", fontSize:13, fontWeight:600,
+              display:"flex", alignItems:"center", gap:8, color:"#0f172a", whiteSpace:"nowrap",
+            }}>{item.label}</button>
+          ))}
+        </div>
+      )}
+      {showLendingMenu && <div onClick={()=>setShowLendingMenu(false)} style={{ position:"fixed", inset:0, zIndex:99 }} />}
+      {/* FAB */}
+      <button onClick={() => {
+        if (tab==="budget") setShowBudgetMenu(prev=>!prev);
+        else if (tab==="invest") setShowAddInvest(true);
+        else if (tab==="insurance") setShowAddInsurance(true);
+        else if (tab==="savings") setShowAddSaving(true);
+        else if (tab==="loans") setShowAddLoan(true);
+        else if (tab==="lending") setShowLendingMenu(prev=>!prev);
+        else setShowAddTx(true);
+      }} style={{
+        position:"fixed", bottom:isDesktop?32:28, right:isDesktop?"32px":"calc(50% - 28px)", width:56, height:56, borderRadius:20, border:"none", cursor:"pointer", fontSize:24, color:"#fff",
+        background:"linear-gradient(135deg,#6366f1,#8b5cf6)", boxShadow:"0 8px 24px rgba(99,102,241,0.4)",
+        display:"flex", alignItems:"center", justifyContent:"center", zIndex:100,
+      }}>+</button>
+      {/* ═══ MODALS ═══ */}
+      {/* Add Tx */}
+      <Modal open={showAddTx} onClose={()=>{setShowAddTx(false);setEditTxId(null)}} title={txForm.category==="lending"?(lang==="vi"?"💸 Cho vay mới":"💸 New Lending"):txForm.category==="loan_repay"?(lang==="vi"?"💰 Thu nợ":"💰 Collect Repayment"):txForm.type==="expense"?t("addExpense"):t("addIncome")}>
+        <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+          {["expense","income"].map(tp=>(
+            <button key={tp} onClick={()=>setTxForm(f=>({...f,type:tp,category:""}))} style={{ flex:1, padding:10, border:"none", borderRadius:10, cursor:"pointer", fontSize:13, fontWeight:700, fontFamily:F, background:txForm.type===tp?(tp==="expense"?"#fef2f2":"#f0fdf4"):"#f8fafc", color:txForm.type===tp?(tp==="expense"?"#F97066":"#12B76A"):"#94a3b8" }}>
+              {tp==="expense"?t("expense"):t("income")}
+            </button>
+          ))}
+        </div>
+        <InputField label={t("amount")} type="number" placeholder="0" value={txForm.amount} onChange={e=>setTxForm(f=>({...f,amount:e.target.value}))} />
+        {txForm.amount && txForm.currency!==reportCur && <div style={{ fontSize:11, color:"#64748b", marginTop:-10, marginBottom:12, fontFamily:F }}>≈ {formatVND(toVND(parseFloat(txForm.amount)||0,txForm.currency))}</div>}
+        <CurrencySelect value={txForm.currency} onChange={v=>setTxForm(f=>({...f,currency:v}))} />
+        <PillPicker label={t("wallet")} items={WALLETS.map(w=>({...w,color:"#6366f1",name:n(w.id==="crypto"?"cryptoW":w.id)}))} selected={txForm.wallet} onSelect={id=>setTxForm(f=>({...f,wallet:id}))} />
+        <PillPicker label={t("paidFor")} items={people.map(p=>({...p,color:"#6366f1",name:n(p.id)}))} selected={txForm.person} onSelect={id=>setTxForm(f=>({...f,person:id}))} />
+        <PillPicker label={t("category")} items={(CATEGORIES[txForm.type]||[]).map(c=>({...c,name:n(c.id)}))} selected={txForm.category} onSelect={id=>setTxForm(f=>({...f,category:id}))} />
+        <InputField label={txForm.category==="lending"||txForm.category==="loan_repay"?(lang==="vi"?"Tên người vay (quan trọng)":"Borrower name (important)"):t("note")} placeholder={txForm.category==="lending"||txForm.category==="loan_repay"?(lang==="vi"?"VD: Bạn Lan, Anh Minh...":"e.g. Lan, Minh..."):t("phLunch")} value={txForm.note} onChange={e=>setTxForm(f=>({...f,note:e.target.value}))} />
+        <InputField label={t("date")} type="date" value={txForm.date} onChange={e=>setTxForm(f=>({...f,date:e.target.value}))} />
+        <Btn onClick={addTransaction}>{t("saveTx")}</Btn>
+      </Modal>
+      {/* Add Plan Item (Income/Fixed) */}
+      <Modal open={!!showAddPlanItem} onClose={()=>{setShowAddPlanItem(null);setPlanItemForm({name:"",amount:"",currency:"USDT",recurring:true})}} title={showAddPlanItem==="income"?t("addExpIncome"):t("addFixedCostTitle")}>
+        <InputField label={t("name")} placeholder={showAddPlanItem==="income"?t("phIncItem"):t("phFixItem")} value={planItemForm.name} onChange={e=>setPlanItemForm(f=>({...f,name:e.target.value}))} />
+        <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+          {[{v:true,l:"recurring"},{v:false,l:"oneTime"}].map(opt => (
+            <button key={String(opt.v)} onClick={()=>setPlanItemForm(f=>({...f,recurring:opt.v}))} style={{
+              flex:1, padding:"10px 8px", border:planItemForm.recurring===opt.v?"2px solid #6366f1":"2px solid #e2e8f0",
+              borderRadius:10, cursor:"pointer", fontSize:12, fontWeight:planItemForm.recurring===opt.v?700:500, fontFamily:F,
+              background:planItemForm.recurring===opt.v?"#eef2ff":"#fafbfc", color:planItemForm.recurring===opt.v?"#6366f1":"#94a3b8",
+            }}>{opt.v?"🔄":"1️⃣"} {t(opt.l)}</button>
+          ))}
+        </div>
+        <InputField label={planItemForm.recurring ? (lang==="vi"?"Số tiền / tháng":"Amount / month") : (lang==="vi"?"Số tiền (một lần)":"Amount (one-time)")} type="number" placeholder="0" value={planItemForm.amount} onChange={e=>setPlanItemForm(f=>({...f,amount:e.target.value}))} />
+        {planItemForm.amount && planItemForm.currency!==reportCur && <div style={{ fontSize:11, color:"#64748b", marginTop:-10, marginBottom:12, fontFamily:F }}>≈ {formatVND(toVND(parseFloat(planItemForm.amount)||0, planItemForm.currency))}</div>}
+        <CurrencySelect value={planItemForm.currency} onChange={v=>setPlanItemForm(f=>({...f,currency:v}))} />
+        <Btn onClick={addPlanItem}>{showAddPlanItem==="income"?t("addIncomeItem"):t("addFixedCost")}</Btn>
+      </Modal>
+      {/* Add Budget */}
+      <Modal open={showAddBudget} onClose={()=>setShowAddBudget(false)} title={t("addBudgetTitle")}>
+        <PillPicker label={t("category")} items={CATEGORIES.expense.map(c=>({...c,name:n(c.id)}))} selected={budgetForm.category} onSelect={id=>setBudgetForm(f=>({...f,category:id}))} />
+        <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+          {[{v:true,l:"recurring"},{v:false,l:"oneTime"}].map(opt => (
+            <button key={String(opt.v)} onClick={()=>setBudgetForm(f=>({...f,recurring:opt.v}))} style={{
+              flex:1, padding:"10px 8px", border:budgetForm.recurring===opt.v?"2px solid #6366f1":"2px solid #e2e8f0",
+              borderRadius:10, cursor:"pointer", fontSize:12, fontWeight:budgetForm.recurring===opt.v?700:500, fontFamily:F,
+              background:budgetForm.recurring===opt.v?"#eef2ff":"#fafbfc", color:budgetForm.recurring===opt.v?"#6366f1":"#94a3b8",
+            }}>{opt.v?"🔄":"1️⃣"} {t(opt.l)}</button>
+          ))}
+        </div>
+        {budgetForm.recurring && (
+          <div style={{ marginBottom:16 }}>
+            <label style={{ fontSize:12, fontWeight:600, color:"#64748b", marginBottom:8, display:"block", fontFamily:F }}>{lang==="vi"?"Nhập theo":"Enter as"}</label>
+            <div style={{ display:"flex", gap:4 }}>
+              {[{v:1,l:"pMonth"},{v:3,l:"pQuarter"},{v:6,l:"pHalf"},{v:12,l:"pYear"}].map(p => (
+                <button key={p.v} onClick={()=>setBudgetForm(f=>({...f,inputPeriod:p.v}))} style={{
+                  flex:1, padding:"7px 4px", border:(budgetForm.inputPeriod||1)===p.v?"2px solid #7A5AF8":"2px solid #e2e8f0",
+                  borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:(budgetForm.inputPeriod||1)===p.v?700:500, fontFamily:F,
+                  background:(budgetForm.inputPeriod||1)===p.v?"#f5f3ff":"#fafbfc", color:(budgetForm.inputPeriod||1)===p.v?"#7A5AF8":"#94a3b8",
+                }}>{t(p.l)}</button>
+              ))}
+            </div>
+          </div>
+        )}
+        <InputField label={budgetForm.recurring ? `${lang==="vi"?"Hạn mức":"Limit"} / ${(budgetForm.inputPeriod||1)===1?t("pMonth"):(budgetForm.inputPeriod||1)===3?t("pQuarter"):(budgetForm.inputPeriod||1)===6?t("pHalf"):t("pYear")}` : (lang==="vi"?"Hạn mức (một lần)":"Limit (one-time)")} type="number" placeholder="0" value={budgetForm.limit} onChange={e=>setBudgetForm(f=>({...f,limit:e.target.value}))} />
+        {budgetForm.limit && budgetForm.recurring && (budgetForm.inputPeriod||1) > 1 && (
+          <div style={{ fontSize:11, color:"#7A5AF8", marginTop:-10, marginBottom:12, fontFamily:F, background:"#f5f3ff", padding:"6px 10px", borderRadius:8 }}>
+            = {formatVND(toVND(parseFloat(budgetForm.limit)||0, budgetForm.currency) / (budgetForm.inputPeriod||1))} / {t("pMonth")}
+          </div>
+        )}
+        {budgetForm.limit && budgetForm.currency!==reportCur && <div style={{ fontSize:11, color:"#64748b", marginTop:-10, marginBottom:12, fontFamily:F }}>≈ {formatVND(toVND(parseFloat(budgetForm.limit)||0,budgetForm.currency))}</div>}
+        <CurrencySelect value={budgetForm.currency} onChange={v=>setBudgetForm(f=>({...f,currency:v}))} />
+        <Btn onClick={addBudget}>{t("saveBudget")}</Btn>
+      </Modal>
+      {/* Add Investment */}
+      <Modal open={showAddInvest} onClose={()=>setShowAddInvest(false)} title={t("addInvest")}>
+        <PillPicker label={t("type")} items={INVESTMENT_TYPES.map(x=>({...x,color:"#7A5AF8",name:n(x.id)}))} selected={investForm.type} onSelect={id=>setInvestForm(f=>({...f,type:id}))} />
+        <InputField label={t("name")} placeholder={t("phBitcoin")} value={investForm.name} onChange={e=>setInvestForm(f=>({...f,name:e.target.value}))} />
+        <InputField label={t("quantity")} type="number" placeholder="0" value={investForm.amount} onChange={e=>setInvestForm(f=>({...f,amount:e.target.value}))} />
+        <CurrencySelect value={investForm.currency} onChange={v=>setInvestForm(f=>({...f,currency:v}))} />
+        <InputField label={t("buyPrice")} type="number" placeholder="0" value={investForm.buyPrice} onChange={e=>setInvestForm(f=>({...f,buyPrice:e.target.value}))} />
+        {editInvId && <InputField label={t("currentPrice")} type="number" placeholder="0" value={investForm.currentPrice} onChange={e=>setInvestForm(f=>({...f,currentPrice:e.target.value}))} />}
+        <Btn onClick={addInvestment}>{t("saveInvest")}</Btn>
+      </Modal>
+      {/* Add Insurance */}
+      <Modal open={showAddInsurance} onClose={()=>setShowAddInsurance(false)} title={t("addInsPolicy")}>
+        <PillPicker label={t("provider")} items={[{id:"AIA",name:"AIA",icon:"🔴",color:"#DC2626"},{id:"Bảo Việt",name:"Bảo Việt",icon:"🔵",color:"#2563EB"},{id:"Other",name:t("category"),icon:"⚪",color:"#64748b"}]} selected={insForm.provider} onSelect={id=>setInsForm(f=>({...f,provider:id}))} />
+        <InputField label={t("policyName")} placeholder={t("phAIA")} value={insForm.policyName} onChange={e=>setInsForm(f=>({...f,policyName:e.target.value}))} />
+        <PillPicker label={t("insuredPerson")} items={people.map(p=>({...p,color:"#06B6D4",name:n(p.id)}))} selected={insForm.insuredPerson} onSelect={id=>setInsForm(f=>({...f,insuredPerson:id}))} />
+        <PillPicker label={t("payFreq")} items={[{id:"quarterly",name:t("quarterly"),icon:"📅",color:"#06B6D4"},{id:"semi-annual",name:t("semiAnnual"),icon:"📆",color:"#0891B2"}]} selected={insForm.frequency} onSelect={id=>setInsForm(f=>({...f,frequency:id}))} />
+        <InputField label={insForm.frequency === "semi-annual" ? t("premHalf") : t("premQuarter")} type="number" placeholder="0" value={insForm.premium} onChange={e=>setInsForm(f=>({...f,premium:e.target.value}))} />
+        <CurrencySelect value={insForm.currency} onChange={v=>setInsForm(f=>({...f,currency:v}))} />
+        <InputField label={t("startDate")} type="date" value={insForm.startDate} onChange={e=>setInsForm(f=>({...f,startDate:e.target.value}))} />
+        <InputField label={t("nextDueDate")} type="date" value={insForm.nextDue} onChange={e=>setInsForm(f=>({...f,nextDue:e.target.value}))} />
+        <InputField label={t("duration")} type="number" placeholder="20" value={insForm.totalYears} onChange={e=>setInsForm(f=>({...f,totalYears:e.target.value}))} />
+        <InputField label={t("note")} placeholder={t("phInsNote")} value={insForm.note} onChange={e=>setInsForm(f=>({...f,note:e.target.value}))} />
+        <Btn onClick={addInsurance}>{t("saveIns")}</Btn>
+      </Modal>
+      {/* Add Saving Goal */}
+      <Modal open={showAddSaving} onClose={()=>setShowAddSaving(false)} title={t("addSavGoal")}>
+        <InputField label={t("goalName")} placeholder={t("phSavGoal")} value={savingForm.name} onChange={e=>setSavingForm(f=>({...f,name:e.target.value}))} />
+        <InputField label={t("targetAmt")} type="number" placeholder="0" value={savingForm.target} onChange={e=>setSavingForm(f=>({...f,target:e.target.value}))} />
+        {savingForm.target && savingForm.currency !== reportCur && <div style={{ fontSize:11, color:"#64748b", marginTop:-10, marginBottom:12, fontFamily:F }}>≈ {formatVND(toVND(parseFloat(savingForm.target)||0, savingForm.currency))}</div>}
+        <InputField label={t("amtSaved")} type="number" placeholder="0" value={savingForm.saved} onChange={e=>setSavingForm(f=>({...f,saved:e.target.value}))} />
+        <CurrencySelect value={savingForm.currency} onChange={v=>setSavingForm(f=>({...f,currency:v}))} />
+        <InputField label={t("deadline")} type="date" value={savingForm.deadline} onChange={e=>setSavingForm(f=>({...f,deadline:e.target.value}))} />
+        <div style={{ marginBottom:16 }}>
+          <label style={{ fontSize:12, fontWeight:600, color:"#64748b", marginBottom:8, display:"block", fontFamily:F }}>{lang==="vi"?"Đóng góp định kỳ":"Regular Contribution"}</label>
+          <div style={{ display:"flex", gap:4, marginBottom:10 }}>
+            {[{v:"monthly",l:lang==="vi"?"Hàng tháng":"Monthly"},{v:"quarterly",l:lang==="vi"?"Hàng quý":"Quarterly"},{v:"yearly",l:lang==="vi"?"Hàng năm":"Yearly"}].map(opt => (
+              <button key={opt.v} onClick={()=>setSavingForm(f=>({...f,contribFreq:opt.v}))} style={{
+                flex:1, padding:"7px 4px", border:(savingForm.contribFreq||"monthly")===opt.v?"2px solid #7A5AF8":"2px solid #e2e8f0",
+                borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:(savingForm.contribFreq||"monthly")===opt.v?700:500, fontFamily:F,
+                background:(savingForm.contribFreq||"monthly")===opt.v?"#f5f3ff":"#fafbfc", color:(savingForm.contribFreq||"monthly")===opt.v?"#7A5AF8":"#94a3b8",
+              }}>{opt.l}</button>
+            ))}
+          </div>
+          <InputField label={`${lang==="vi"?"Số tiền":"Amount"} / ${(savingForm.contribFreq||"monthly")==="monthly"?(lang==="vi"?"tháng":"month"):(savingForm.contribFreq||"monthly")==="quarterly"?(lang==="vi"?"quý":"quarter"):(lang==="vi"?"năm":"year")}`} type="number" placeholder="0" value={savingForm.contribAmount} onChange={e=>setSavingForm(f=>({...f,contribAmount:e.target.value}))} />
+          {savingForm.contribAmount && (savingForm.contribFreq||"monthly") !== "monthly" && (
+            <div style={{ fontSize:11, color:"#7A5AF8", marginTop:-10, marginBottom:8, fontFamily:F, background:"#f5f3ff", padding:"4px 10px", borderRadius:6 }}>
+              = {formatVND(toVND(parseFloat(savingForm.contribAmount||0) / ((savingForm.contribFreq||"monthly")==="quarterly"?3:12), savingForm.currency))}/{lang==="vi"?"tháng":"mo"}
+            </div>
+          )}
+        </div>
+        <InputField label={t("note")} placeholder={t("phSavNote")} value={savingForm.note} onChange={e=>setSavingForm(f=>({...f,note:e.target.value}))} />
+        <Btn onClick={addSaving}>{t("saveGoal")}</Btn>
+      </Modal>
+      {/* Add/Edit Loan */}
+      <Modal open={showAddLoan} onClose={()=>{setShowAddLoan(false);setEditLoanId(null);setLoanForm({lender:"",type:"bank",amount:"",currency:"VND",rate:"",rateType:"month",startDate:"",termMonths:"",payFreq:"monthly",installment:"",paidAmount:"",note:""})}} title={editLoanId?(lang==="vi"?"Sửa khoản vay":"Edit Loan"):(lang==="vi"?"Thêm khoản vay":"Add Loan")}>
+        <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+          {[{v:"bank",l:lang==="vi"?"🏦 Ngân hàng":"🏦 Bank"},{v:"personal",l:lang==="vi"?"👤 Cá nhân":"👤 Personal"}].map(opt => (
+            <button key={opt.v} onClick={()=>setLoanForm(f=>({...f,type:opt.v}))} style={{
+              flex:1, padding:"10px 8px", border:loanForm.type===opt.v?"2px solid #6366f1":"2px solid #e2e8f0",
+              borderRadius:10, cursor:"pointer", fontSize:12, fontWeight:loanForm.type===opt.v?700:500, fontFamily:F,
+              background:loanForm.type===opt.v?"#eef2ff":"#fafbfc", color:loanForm.type===opt.v?"#6366f1":"#94a3b8",
+            }}>{opt.l}</button>
+          ))}
+        </div>
+        <InputField label={lang==="vi"?"Người/tổ chức cho vay":"Lender"} placeholder={loanForm.type==="bank"?(lang==="vi"?"VD: VCB, ACB, FE Credit...":"e.g. VCB, ACB..."):(lang==="vi"?"VD: Anh Minh, Chị Hoa...":"e.g. John...")} value={loanForm.lender} onChange={e=>setLoanForm(f=>({...f,lender:e.target.value}))} />
+        <InputField label={lang==="vi"?"Số tiền gốc":"Principal"} type="number" placeholder="0" value={loanForm.amount} onChange={e=>setLoanForm(f=>({...f,amount:e.target.value}))} />
+        <CurrencySelect value={loanForm.currency} onChange={v=>setLoanForm(f=>({...f,currency:v}))} />
+        <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+          <div style={{ flex:1 }}>
+            <InputField label={lang==="vi"?"Lãi suất":"Interest Rate"} type="number" placeholder="0" step="0.1" value={loanForm.rate} onChange={e=>setLoanForm(f=>({...f,rate:e.target.value}))} />
+          </div>
+          <div style={{ display:"flex", gap:4, alignItems:"flex-end", paddingBottom:14 }}>
+            {[{v:"month",l:"%/"+( lang==="vi"?"tháng":"mo")},{v:"year",l:"%/"+(lang==="vi"?"năm":"yr")}].map(opt => (
+              <button key={opt.v} onClick={()=>setLoanForm(f=>({...f,rateType:opt.v}))} style={{
+                padding:"8px 10px", border:loanForm.rateType===opt.v?"2px solid #7A5AF8":"2px solid #e2e8f0",
+                borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:loanForm.rateType===opt.v?700:500, fontFamily:F,
+                background:loanForm.rateType===opt.v?"#f5f3ff":"#fafbfc", color:loanForm.rateType===opt.v?"#7A5AF8":"#94a3b8",
+              }}>{opt.l}</button>
+            ))}
+          </div>
+        </div>
+        <InputField label={lang==="vi"?"Ngày vay":"Start Date"} type="date" value={loanForm.startDate} onChange={e=>setLoanForm(f=>({...f,startDate:e.target.value}))} />
+        <InputField label={lang==="vi"?"Kỳ hạn (tháng)":"Term (months)"} type="number" placeholder="VD: 12, 24, 36..." value={loanForm.termMonths} onChange={e=>setLoanForm(f=>({...f,termMonths:e.target.value}))} />
+        <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+          <label style={{ fontSize:12, fontWeight:600, color:"#64748b", fontFamily:F, alignSelf:"center" }}>{lang==="vi"?"Trả góp":"Pay Freq"}:</label>
+          {[{v:"monthly",l:lang==="vi"?"Hàng tháng":"Monthly"},{v:"quarterly",l:lang==="vi"?"Hàng quý":"Quarterly"}].map(opt => (
+            <button key={opt.v} onClick={()=>setLoanForm(f=>({...f,payFreq:opt.v}))} style={{
+              padding:"8px 12px", border:loanForm.payFreq===opt.v?"2px solid #3b82f6":"2px solid #e2e8f0",
+              borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:loanForm.payFreq===opt.v?700:500, fontFamily:F,
+              background:loanForm.payFreq===opt.v?"#eff6ff":"#fafbfc", color:loanForm.payFreq===opt.v?"#3b82f6":"#94a3b8",
+            }}>{opt.l}</button>
+          ))}
+        </div>
+        <InputField label={lang==="vi"?`Số tiền trả mỗi ${loanForm.payFreq==="quarterly"?"quý":"tháng"}`:`Payment per ${loanForm.payFreq==="quarterly"?"quarter":"month"}`} type="number" placeholder="0" value={loanForm.installment} onChange={e=>setLoanForm(f=>({...f,installment:e.target.value}))} />
+        <InputField label={lang==="vi"?"Tổng đã trả":"Total Paid"} type="number" placeholder="0" value={loanForm.paidAmount} onChange={e=>setLoanForm(f=>({...f,paidAmount:e.target.value}))} />
+        <InputField label={t("note")} placeholder={lang==="vi"?"VD: Mua nhà, xe, kinh doanh...":"e.g. Mortgage, car..."} value={loanForm.note} onChange={e=>setLoanForm(f=>({...f,note:e.target.value}))} />
+        <Btn onClick={addLoan}>{lang==="vi"?"Lưu khoản vay":"Save Loan"}</Btn>
+      </Modal>
+      {/* Edit Wallet Balance */}
+      <Modal open={!!showEditWallet} onClose={() => { setShowEditWallet(null); setWalletEditForm({ currency:"VND", amount:"" }); }} title={`Initial Balance: ${WALLETS.find(w=>w.id===showEditWallet)?.name || ""}`}>
+        {showEditWallet && (
+          <>
+            {/* Current initial balances */}
+            {walletBalances[showEditWallet] && Object.keys(walletBalances[showEditWallet]).length > 0 && (
+              <div style={{ marginBottom:16 }}>
+                <label style={{ fontSize:12, fontWeight:600, color:"#64748b", marginBottom:8, display:"block", fontFamily:F }}>{t("curInitBal")}</label>
+                {Object.entries(walletBalances[showEditWallet]).map(([cur, amt]) => (
+                  <div key={cur} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", background:"#f8fafc", borderRadius:10, marginBottom:4 }}>
+                    <div style={{ fontSize:13, fontWeight:600, fontFamily:F }}>
+                      {cur}: {formatCurrency(amt, cur)}
+                      {cur !== reportCur && <span style={{ color:"#94a3b8", fontSize:11 }}> ≈{formatVND(toVND(amt, cur))}</span>}
+                    </div>
+                    <button onClick={() => removeWalletBalance(showEditWallet, cur)} style={{ border:"none", background:"none", cursor:"pointer", fontSize:13, color:"#F97066", fontFamily:F }}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <CurrencySelect value={walletEditForm.currency} onChange={v => setWalletEditForm(f => ({ ...f, currency: v }))} />
+            <InputField label={t("initBalance")} type="number" placeholder="0" value={walletEditForm.amount}
+              onChange={e => setWalletEditForm(f => ({ ...f, amount: e.target.value }))} />
+            {walletEditForm.amount && walletEditForm.currency !== reportCur && (
+              <div style={{ fontSize:11, color:"#64748b", marginTop:-10, marginBottom:12, fontFamily:F }}>
+                ≈ {formatVND(toVND(parseFloat(walletEditForm.amount) || 0, walletEditForm.currency))}
+              </div>
+            )}
+            <Btn onClick={addWalletBalance}>{t("addUpdateBal")}</Btn>
+          </>
+        )}
+      </Modal>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
