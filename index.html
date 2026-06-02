@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#ffffff">
-<title>💳 Finance Manager v2.3</title>
+<title>💳 Finance Manager v2.4</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;500;700;800&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -603,6 +603,43 @@ const App = function FinanceApp() {
   const loadDemo = () => { setTransactions(DEMO_TX); setBudgets(DEMO_BUDGETS); setInvestments(DEMO_INVESTMENTS); setInsurance(DEMO_INSURANCE); setWalletBalances(DEMO_WALLET_BALANCES); setSavings(DEMO_SAVINGS); setBudgetPlan(DEMO_BUDGET_PLAN); setLoans(DEMO_LOANS); setIsDemo(true); };
   const clearAll = () => { saveTx([]); saveBg([]); saveInv([]); saveIns([]); saveWB({}); saveSv([]); saveBP({incomeItems:[],fixedItems:[]}); saveLR({}); saveLo([]); setIsDemo(false); };
   const refreshRates = async () => { const r = await fetchRates(); setRates(r || FALLBACK_RATES); };
+  // Export all data as JSON file
+  const exportData = () => {
+    const data = { version:"2.3", exportDate:new Date().toISOString(), transactions, budgets, investments, insurance, walletBalances, savings, budgetPlan, loanRates, loans };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `finance-backup-${new Date().toISOString().split("T")[0]}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+  // Import data from JSON file
+  const importData = () => {
+    const input = document.createElement("input");
+    input.type = "file"; input.accept = ".json";
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const d = JSON.parse(ev.target.result);
+          if (d.transactions) saveTx(d.transactions);
+          if (d.budgets) saveBg(d.budgets);
+          if (d.investments) saveInv(d.investments);
+          if (d.insurance) saveIns(d.insurance);
+          if (d.walletBalances) saveWB(d.walletBalances);
+          if (d.savings) saveSv(d.savings);
+          if (d.budgetPlan) saveBP(d.budgetPlan);
+          if (d.loanRates) saveLR(d.loanRates);
+          if (d.loans) saveLo(d.loans);
+          setIsDemo(false);
+          alert(lang==="vi"?"Nhập dữ liệu thành công!":"Data imported successfully!");
+        } catch(err) { alert(lang==="vi"?"File không hợp lệ":"Invalid file"); }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
   // Budget plan CRUD
   const addPlanItem = () => {
     if (!planItemForm.name || !planItemForm.amount || !showAddPlanItem) return;
@@ -992,10 +1029,12 @@ const App = function FinanceApp() {
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10, paddingTop:8 }}>
         <div>
-          <div style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.8px" }}>{t("appTitle")} <span style={{ fontSize:9, color:"#cbd5e1", fontWeight:500 }}>v2.3</span></div>
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.8px" }}>{t("appTitle")} <span style={{ fontSize:9, color:"#cbd5e1", fontWeight:500 }}>v2.4</span></div>
           <div style={{ fontSize:12, color:"#94a3b8", marginTop:2 }}>{getMonthName(filterMonth,lang)}</div>
         </div>
         <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+          <button onClick={exportData} title={lang==="vi"?"Xuất dữ liệu":"Export"} style={{ border:"2px solid #e2e8f0", background:"#fafbfc", borderRadius:10, width:34, height:34, cursor:"pointer", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center" }}>💾</button>
+          <button onClick={importData} title={lang==="vi"?"Nhập dữ liệu":"Import"} style={{ border:"2px solid #e2e8f0", background:"#fafbfc", borderRadius:10, width:34, height:34, cursor:"pointer", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center" }}>📂</button>
           <select value={reportCur} onChange={e=>setReport(e.target.value)} style={{ border:"2px solid #e2e8f0", background:"#fafbfc", borderRadius:10, height:34, padding:"0 6px", cursor:"pointer", fontSize:11, fontWeight:700, fontFamily:F, color:"#7A5AF8", outline:"none", appearance:"none", textAlign:"center", width:55 }}>
             {CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}
           </select>
