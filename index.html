@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#ffffff">
-<title>💳 Finance Manager v2.6</title>
+<title>💳 Finance Manager v2.7</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;500;700;800&display=swap" rel="stylesheet">
 <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fff;-webkit-font-smoothing:antialiased}@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none}</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -634,10 +634,9 @@ const App = function FinanceApp() {
     };
     input.click();
   };
-  // Cloud Sync via jsonblob.com (free, no signup)
-  const [cloudId, setCloudId] = useState(() => { try { return localStorage.getItem("finance:cloudId") || ""; } catch { return ""; } });
+  // Cloud Sync via clipboard (no external API needed)
   const [syncing, setSyncing] = useState(false);
-  const getAllData = () => ({ version:"2.6", savedAt:new Date().toISOString(), transactions, budgets, investments, insurance, walletBalances, savings, budgetPlan, loanRates, loans });
+  const getAllData = () => ({ v:"2.6", t:new Date().toISOString(), transactions, budgets, investments, insurance, walletBalances, savings, budgetPlan, loanRates, loans });
   const restoreFromData = (d) => {
     if (d.transactions) saveTx(d.transactions); if (d.budgets) saveBg(d.budgets); if (d.investments) saveInv(d.investments);
     if (d.insurance) saveIns(d.insurance); if (d.walletBalances) saveWB(d.walletBalances); if (d.savings) saveSv(d.savings);
@@ -645,53 +644,39 @@ const App = function FinanceApp() {
     setIsDemo(false);
   };
   const cloudSave = async () => {
-    setSyncing(true);
     try {
-      const data = getAllData();
-      if (cloudId) {
-        await fetch(`https://jsonblob.com/api/jsonBlob/${cloudId}`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data) });
-        alert("☁️ " + (lang==="vi"?"Đã lưu!":"Saved!"));
-      } else {
-        const res = await fetch("https://jsonblob.com/api/jsonBlob", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data) });
-        const loc = res.headers.get("Location") || "";
-        const newId = loc.split("/").pop();
-        if (newId) {
-          setCloudId(newId); try { localStorage.setItem("finance:cloudId", newId); } catch {}
-          try { await navigator.clipboard.writeText(newId); } catch {}
-          alert(lang==="vi"
-            ?`☁️ Đã lưu! Cloud ID đã copy:\n\n${newId}\n\nGhi lại ID này để khôi phục khi cần.`
-            :`☁️ Saved! Cloud ID copied:\n\n${newId}\n\nSave this ID to restore later.`);
-        }
-      }
-    } catch(e) { alert("Error: "+e.message); }
-    setSyncing(false);
+      const code = btoa(unescape(encodeURIComponent(JSON.stringify(getAllData()))));
+      await navigator.clipboard.writeText(code);
+      alert(lang==="vi"
+        ?"✅ Đã copy backup!\n\nMở Notes → Dán (Paste) → Lưu lại.\nKhi cần khôi phục: copy code đó, quay lại app, giữ nút ☁️."
+        :"✅ Backup copied!\n\nOpen Notes → Paste → Save.\nTo restore: copy that code, return to app, hold ☁️.");
+    } catch(e) {
+      // Fallback: show in prompt for manual copy
+      const code = btoa(unescape(encodeURIComponent(JSON.stringify(getAllData()))));
+      prompt(lang==="vi"?"Copy code này, dán vào Notes lưu lại:":"Copy this code, paste to Notes:", code);
+    }
   };
-  const cloudLoad = async (useId) => {
-    if (!useId) return;
-    setSyncing(true);
+  const cloudLoad = async () => {
     try {
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${useId}`);
-      if (!res.ok) throw new Error("Not found");
-      restoreFromData(await res.json());
-      setCloudId(useId); try { localStorage.setItem("finance:cloudId", useId); } catch {}
-      alert(lang==="vi"?"Khôi phục thành công!":"Restored!");
-    } catch(e) { alert("Error: "+e.message); }
-    setSyncing(false);
+      const code = await navigator.clipboard.readText();
+      if (!code || code.length < 10) { alert(lang==="vi"?"Clipboard trống. Copy backup code trước.":"Clipboard empty. Copy backup code first."); return; }
+      const json = decodeURIComponent(escape(atob(code)));
+      const d = JSON.parse(json);
+      restoreFromData(d);
+      alert(lang==="vi"?"✅ Khôi phục thành công!":"✅ Restored!");
+    } catch(e) {
+      // Fallback: ask to paste manually
+      const code = prompt(lang==="vi"?"Dán backup code vào đây:":"Paste backup code here:");
+      if (!code) return;
+      try {
+        const json = decodeURIComponent(escape(atob(code)));
+        restoreFromData(JSON.parse(json));
+        alert(lang==="vi"?"✅ Khôi phục thành công!":"✅ Restored!");
+      } catch(e2) { alert(lang==="vi"?"Code không hợp lệ":"Invalid code"); }
+    }
   };
-  const showCloudSync = () => {
-    // Single tap = auto save
-    cloudSave();
-  };
-  const showCloudMenu = () => {
-    // Long press = restore menu
-    const a = prompt(lang==="vi"
-      ?`Cloud ID: ${cloudId || "(chưa có)"}\n\n1 = Khôi phục từ mây\n2 = Nhập ID khác\n3 = Copy ID\n\nNhập số:`
-      :`Cloud ID: ${cloudId || "(none)"}\n\n1=Restore 2=Other ID 3=Copy\n\nEnter:`, "1");
-    if (a==="1" && cloudId) cloudLoad(cloudId);
-    else if (a==="1" && !cloudId) { const id=prompt("Cloud ID:"); if(id) cloudLoad(id.trim()); }
-    else if (a==="2") { const id=prompt("Cloud ID:"); if(id) cloudLoad(id.trim()); }
-    else if (a==="3" && cloudId) { navigator.clipboard.writeText(cloudId).then(()=>alert("Copied: "+cloudId)).catch(()=>alert("ID: "+cloudId)); }
-  };
+  const showCloudSync = () => cloudSave();
+  const showCloudMenu = () => cloudLoad();
   const addPlanItem = () => {
     if (!planItemForm.name || !planItemForm.amount || !showAddPlanItem) return;
     const item = { id: generateId(), name: planItemForm.name, amount: parseFloat(planItemForm.amount), currency: planItemForm.currency, recurring: planItemForm.recurring !== false };
@@ -1080,14 +1065,14 @@ const App = function FinanceApp() {
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10, paddingTop:8 }}>
         <div>
-          <div style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.8px" }}>{t("appTitle")} <span style={{ fontSize:9, color:"#cbd5e1", fontWeight:500 }}>v2.6</span></div>
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.8px" }}>{t("appTitle")} <span style={{ fontSize:9, color:"#cbd5e1", fontWeight:500 }}>v2.7</span></div>
           <div style={{ fontSize:12, color:"#94a3b8", marginTop:2 }}>{getMonthName(filterMonth,lang)}</div>
         </div>
         <div style={{ display:"flex", gap:6, alignItems:"center" }}>
           <button onClick={showCloudSync} onContextMenu={(e)=>{e.preventDefault();showCloudMenu()}}
             onTouchStart={(e)=>{e.currentTarget._lt=setTimeout(()=>{e.currentTarget._lp=true;showCloudMenu()},600)}}
             onTouchEnd={(e)=>{clearTimeout(e.currentTarget._lt);if(e.currentTarget._lp){e.preventDefault();e.currentTarget._lp=false}}}
-            title={lang==="vi"?"Bấm=Lưu, Giữ=Khôi phục":"Tap=Save, Hold=Restore"} style={{ border:"2px solid #e2e8f0", background:cloudId?"#f0fdf4":"#fafbfc", borderRadius:10, width:34, height:34, cursor:"pointer", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center", borderColor:cloudId?"#bbf7d0":"#e2e8f0" }}>{syncing?"⏳":"☁️"}</button>
+            title={lang==="vi"?"Bấm=Backup, Giữ=Khôi phục":"Tap=Backup, Hold=Restore"} style={{ border:"2px solid #e2e8f0", background:"#fafbfc", borderRadius:10, width:34, height:34, cursor:"pointer", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center" }}>{syncing?"⏳":"☁️"}</button>
           <select value={reportCur} onChange={e=>setReport(e.target.value)} style={{ border:"2px solid #e2e8f0", background:"#fafbfc", borderRadius:10, height:34, padding:"0 6px", cursor:"pointer", fontSize:11, fontWeight:700, fontFamily:F, color:"#7A5AF8", outline:"none", appearance:"none", textAlign:"center", width:55 }}>
             {CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}
           </select>
