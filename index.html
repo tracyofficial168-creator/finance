@@ -10,13 +10,7 @@
 <meta name="theme-color" content="#ffffff">
 <title>💳 Finance Manager v2.5</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;500;700;800&display=swap" rel="stylesheet">
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{background:#fff;-webkit-font-smoothing:antialiased}
-  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-  input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none}
-</style>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fff;-webkit-font-smoothing:antialiased}@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none}</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
@@ -1079,7 +1073,7 @@ const App = function FinanceApp() {
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10, paddingTop:8 }}>
         <div>
-          <div style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.8px" }}>{t("appTitle")} <span style={{ fontSize:9, color:"#cbd5e1", fontWeight:500 }}>v2.1</span></div>
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.8px" }}>{t("appTitle")} <span style={{ fontSize:9, color:"#cbd5e1", fontWeight:500 }}>v2.5</span></div>
           <div style={{ fontSize:12, color:"#94a3b8", marginTop:2 }}>{getMonthName(filterMonth,lang)}</div>
         </div>
         <div style={{ display:"flex", gap:6, alignItems:"center" }}>
