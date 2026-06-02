@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#ffffff">
-<title>💳 Finance Manager v2.2</title>
+<title>💳 Finance Manager v2.3</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;500;700;800&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -992,7 +992,7 @@ const App = function FinanceApp() {
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10, paddingTop:8 }}>
         <div>
-          <div style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.8px" }}>{t("appTitle")} <span style={{ fontSize:9, color:"#cbd5e1", fontWeight:500 }}>v2.2</span></div>
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.8px" }}>{t("appTitle")} <span style={{ fontSize:9, color:"#cbd5e1", fontWeight:500 }}>v2.3</span></div>
           <div style={{ fontSize:12, color:"#94a3b8", marginTop:2 }}>{getMonthName(filterMonth,lang)}</div>
         </div>
         <div style={{ display:"flex", gap:6, alignItems:"center" }}>
@@ -2311,7 +2311,7 @@ const App = function FinanceApp() {
         <Btn onClick={addInvestment}>{t("saveInvest")}</Btn>
       </Modal>
       {/* Add Insurance */}
-      <Modal open={showAddInsurance} onClose={()=>setShowAddInsurance(false)} title={t("addInsPolicy")}>
+      <Modal open={showAddInsurance} onClose={()=>{setShowAddInsurance(false);setEditInsId(null)}} title={editInsId?(lang==="vi"?"Sửa bảo hiểm":"Edit Insurance"):t("addInsPolicy")}>
         <PillPicker label={t("provider")} items={[{id:"AIA",name:"AIA",icon:"🔴",color:"#DC2626"},{id:"Bảo Việt",name:"Bảo Việt",icon:"🔵",color:"#2563EB"},{id:"Other",name:t("category"),icon:"⚪",color:"#64748b"}]} selected={insForm.provider} onSelect={id=>setInsForm(f=>({...f,provider:id}))} />
         <InputField label={t("policyName")} placeholder={t("phAIA")} value={insForm.policyName} onChange={e=>setInsForm(f=>({...f,policyName:e.target.value}))} />
         <PillPicker label={t("insuredPerson")} items={people.map(p=>({...p,color:"#06B6D4",name:n(p.id)}))} selected={insForm.insuredPerson} onSelect={id=>setInsForm(f=>({...f,insuredPerson:id}))} />
@@ -2325,7 +2325,7 @@ const App = function FinanceApp() {
         <Btn onClick={addInsurance}>{t("saveIns")}</Btn>
       </Modal>
       {/* Add Saving Goal */}
-      <Modal open={showAddSaving} onClose={()=>setShowAddSaving(false)} title={t("addSavGoal")}>
+      <Modal open={showAddSaving} onClose={()=>{setShowAddSaving(false);setEditSvId(null);setSavingForm({name:"",target:"",saved:"",currency:"VND",deadline:"",note:"",contribAmount:"",contribFreq:"monthly"})}} title={editSvId?(lang==="vi"?"Sửa mục tiêu":"Edit Goal"):t("addSavGoal")}>
         <InputField label={t("goalName")} placeholder={t("phSavGoal")} value={savingForm.name} onChange={e=>setSavingForm(f=>({...f,name:e.target.value}))} />
         <InputField label={t("targetAmt")} type="number" placeholder="0" value={savingForm.target} onChange={e=>setSavingForm(f=>({...f,target:e.target.value}))} />
         {savingForm.target && savingForm.currency !== reportCur && <div style={{ fontSize:11, color:"#64748b", marginTop:-10, marginBottom:12, fontFamily:F }}>≈ {formatVND(toVND(parseFloat(savingForm.target)||0, savingForm.currency))}</div>}
